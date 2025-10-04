@@ -1,0 +1,31 @@
+# Sistema de Visualización de Urgencias - FOSCAL
+# Dependencias de Python
+
+# Framework GUI
+PyQt5>=5.15.0
+PyQt5-Qt5>=5.15.2
+PyQt5-sip>=12.11.0
+
+# Base de datos
+PyMySQL>=1.0.2
+
+# Procesamiento de datos y análisis
+numpy>=1.24.0
+pandas>=2.0.0
+
+# Visualización y gráficos
+matplotlib>=3.7.0
+
+# Generación de reportes PDF
+reportlab>=4.0.0
+Pillow>=10.0.0
+
+# Plantillas HTML
+jinja2>=3.1.0
+
+# Compilación de ejecutables
+pyinstaller>=5.13.0
+
+# Utilidades adicionales
+python-dateutil>=2.8.0
+pytz>=2023.3
