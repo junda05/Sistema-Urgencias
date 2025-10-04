@@ -666,10 +666,10 @@ Para más información, consulte el archivo [LICENSE.md](LICENSE.md).
 **Proyecto de Grado - Universidad Autónoma de Bucaramanga**
 
 ### Desarrollador Principal
-- **Estudiante:** [Tu Nombre]
-- **Programa:** Ingeniería de Sistemas
-- **Semestre:** IX
-- **Año:** 2025
+- **Estudiante:** José Mauricio Unda Ortiz
+- **Programa:** Ingeniería Biomédica
+- **Semestre:** Graduado
+- **Año:** 2024-2025
 
 ### Director de Proyecto
 - **Nombre:** [Nombre del Director]
@@ -716,26 +716,6 @@ Si encuentra algún error o tiene sugerencias:
 - **Módulos principales:** 7
 - **Tiempo de desarrollo:** Abril 2024 - Mayo 2025
 - **Versión actual:** Beta Final
-
----
-
-## Historial de Versiones
-
-### Beta Final (Mayo 2025)
-- Sistema completo de autenticación
-- Tres niveles de acceso implementados
-- Generación de reportes PDF
-- Sistema de métricas completo
-- Trazabilidad de pacientes
-- Preferencias por usuario
-- Interfaz responsiva y moderna
-
-### Versiones Futuras (Roadmap)
-- Dashboard de métricas en tiempo real
-- Notificaciones push
-- Integración con otros sistemas hospitalarios
-- Aplicación móvil complementaria
-- Análisis predictivo con ML
 
 ---
 
