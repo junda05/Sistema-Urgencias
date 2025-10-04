@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Informes Médicos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="./templates/styles.css">
+</head>
+<body>
+    <div class="container mx-auto px-4 py-6">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6 bg-[#D5E5F3] p-4 rounded-lg">
+            <h1 class="text-2xl font-bold text-[#333333]">Dashboard de Informes de Urgencias</h1>
+            <div class="flex space-x-2">
+                <button id="exportPdf" class="bg-[#5385B7] hover:bg-[#659BD1] text-white px-4 py-2 rounded-md flex items-center">
+                    <i class="fas fa-file-pdf mr-2"></i> Exportar PDF
+                </button>
+                <button id="exportExcel" class="bg-[#28a745] hover:bg-[#218838] text-white px-4 py-2 rounded-md flex items-center">
+                    <i class="fas fa-file-excel mr-2"></i> Exportar Excel
+                </button>
+            </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-lg font-semibold text-[#333333] mb-4">Filtros</h2>
+            
+            <!-- Tabs -->
+            <div class="flex border-b border-gray-200 mb-4">
+                <div id="tabIndividual" class="tab active px-4 py-2 cursor-pointer">Individual</div>
+                <div id="tabGrupal" class="tab px-4 py-2 cursor-pointer">Grupal</div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Rango de fechas -->
+                <div>
+                    <label class="block text-sm font-medium text-[#333333] mb-1">Fecha Inicio</label>
+                    <input type="date" class="w-full border border-gray-300 rounded-md px-3 py-2" value="2023-01-01">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-[#333333] mb-1">Fecha Fin</label>
+                    <input type="date" class="w-full border border-gray-300 rounded-md px-3 py-2" value="2023-12-31">
+                </div>
+                
+                <!-- Filtros condicionales -->
+                <div id="filtroIndividual" class="col-span-2">
+                    <label class="block text-sm font-medium text-[#333333] mb-1">Paciente</label>
+                    <div class="relative">
+                        <input type="text" id="searchPatient" class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Buscar paciente...">
+                        <div id="patientResults" class="absolute z-10 bg-white w-full mt-1 rounded-md shadow-lg hidden">
+                            <div class="p-2 hover:bg-[#E8F0F7] cursor-pointer">Juan Pérez - CC 12345678</div>
+                            <div class="p-2 hover:bg-[#E8F0F7] cursor-pointer">María López - CC 87654321</div>
+                            <div class="p-2 hover:bg-[#E8F0F7] cursor-pointer">Carlos Rodríguez - CC 23456789</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="filtroGrupal" class="col-span-2 hidden">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-[#333333] mb-1">Tipo de Reporte</label>
+                            <select class="w-full border border-gray-300 rounded-md px-3 py-2" id="tipoReporteGrupal">
+                                <option value="areas">Por Áreas</option>
+                                <option value="pacientes">Por Pacientes</option>
+                            </select>
+                        </div>
+                        <div id="areaSelector">
+                            <label class="block text-sm font-medium text-[#333333] mb-1">Área Asistencial</label>
+                            <select class="w-full border border-gray-300 rounded-md px-3 py-2">
+                                <option value="todas">Todas las áreas</option>
+                                <option value="urgencias">Urgencias</option>
+                                <option value="pediatria">Pediatría</option>
+                                <option value="traumatologia">Traumatología</option>
+                                <option value="medicina_interna">Medicina Interna</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4 flex justify-end">
+                <button id="generarInforme" class="bg-[#5385B7] hover:bg-[#659BD1] text-white px-6 py-2 rounded-md">
+                    Generar Informe
+                </button>
+            </div>
+        </div>
+
+        <!-- Tiempo Total de Atención (KPI Card separada) -->
+        <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+            <div class="flex justify-between items-start mb-2">
+                <h3 class="text-lg font-semibold text-[#333333]">Tiempo Total de Atención</h3>
+                <div class="text-center">
+                    <i class="fas fa-check-circle status-icon status-success"></i>
+                </div>
+            </div>
+            <div id="metricas-individuales-total" class="hidden">
+                <div class="text-3xl font-bold text-[#333333] mb-1">3h 45min</div>
+                <div class="text-sm text-[#555555]">Tiempo total en urgencias</div>
+                <div class="mt-2 text-sm">
+                    <span class="comparison-positive">30 min menos</span> que el promedio del área
+                </div>
+            </div>
+            <div id="metricas-grupales-total">
+                <div class="grid grid-cols-3 gap-2 mb-2">
+                    <div>
+                        <div class="text-2xl font-bold text-[#333333]">4h 15m</div>
+                        <div class="text-xs text-[#555555]">Promedio</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold text-[#333333]">3h 45m</div>
+                        <div class="text-xs text-[#555555]">Mediana</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold text-[#333333]">6h 30m</div>
+                        <div class="text-xs text-[#555555]">P90</div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <div class="text-xs font-medium text-[#555555]">Observación a alta:</div>
+                        <div class="text-base font-bold text-[#333333]">2h 45m</div>
+                    </div>
+                    <div>
+                        <div class="text-xs font-medium text-[#555555]">Hospitalización a alta:</div>
+                        <div class="text-base font-bold text-[#333333]">5h 30m</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Métricas y Visualizaciones -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+            <!-- Triaje -->
+            <div class="kpi-card rounded-lg shadow-md p-4 semaforo-verde">
+                <div class="flex justify-between items-start mb-2">
+                    <h3 class="text-lg font-semibold text-[#333333]">Triaje</h3>
+                    <div class="text-center">
+                        <i class="fas fa-check-circle status-icon status-success"></i>
+                    </div>
+                </div>
+                <div id="metricas-individuales-triaje" class="hidden">
+                    <div class="text-3xl font-bold text-[#333333] mb-1">12 min</div>
+                    <div class="text-sm text-[#555555]">Tiempo de clasificación</div>
+                    <div class="mt-2 text-sm">
+                        <span class="comparison-positive">5 min menos</span> que el promedio del área
+                    </div>
+                </div>
+                <div id="metricas-grupales-triaje">
+                    <div class="grid grid-cols-3 gap-2 mb-2">
+                        <div>
+                            <div class="text-2xl font-bold text-[#333333]">17 min</div>
+                            <div class="text-xs text-[#555555]">Promedio</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-[#333333]">15 min</div>
+                            <div class="text-xs text-[#555555]">Mediana</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-[#333333]">25 min</div>
+                            <div class="text-xs text-[#555555]">P90</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-2 text-xs text-[#555555]">
+                    Tiempo desde "no realizado" hasta clasificación
+                </div>
+            </div>
+
+            <!-- Consulta de Ingreso -->
+            <div class="kpi-card rounded-lg shadow-md p-4 semaforo-verde">
+                <div class="flex justify-between items-start mb-2">
+                    <h3 class="text-lg font-semibold text-[#333333]">Consulta de Ingreso</h3>
+                    <div class="text-center">
+                        <i class="fas fa-check-circle status-icon status-success"></i>
+                    </div>
+                </div>
+                <div id="metricas-individuales-ci" class="hidden">
+                    <div class="text-3xl font-bold text-[#333333] mb-1">28 min</div>
+                    <div class="text-sm text-[#555555]">Tiempo de atención</div>
+                    <div class="mt-2 text-sm">
+                        <span class="comparison-negative">8 min más</span> que el promedio del área
+                    </div>
+                </div>
+                <div id="metricas-grupales-ci">
+                    <div class="grid grid-cols-3 gap-2 mb-2">
+                        <div>
+                            <div class="text-2xl font-bold text-[#333333]">20 min</div>
+                            <div class="text-xs text-[#555555]">Promedio</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-[#333333]">18 min</div>
+                            <div class="text-xs text-[#555555]">Mediana</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-[#333333]">35 min</div>
+                            <div class="text-xs text-[#555555]">P90</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-2 text-xs text-[#555555]">
+                    Tiempo desde "no realizado" hasta "realizado"
+                </div>
+            </div>
+
+            <!-- Laboratorios -->
+            <div class="kpi-card rounded-lg shadow-md p-4 semaforo-amarillo">
+                <div class="flex justify-between items-start mb-2">
+                    <h3 class="text-lg font-semibold text-[#333333]">Laboratorios</h3>
+                    <div class="text-center">
+                        <i class="fas fa-exclamation-triangle status-icon status-warning"></i>
+                    </div>
+                </div>
+                <div id="metricas-individuales-lab" class="hidden">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <div class="text-xl font-bold text-[#333333] mb-1">15 min</div>
+                            <div class="text-xs text-[#555555]">Solicitud a espera</div>
+                        </div>
+                        <div>
+                            <div class="text-xl font-bold text-[#333333] mb-1">-- min</div>
+                            <div class="text-xs text-[#555555]">Espera a resultados</div>
+                        </div>
+                    </div>
+                    <div class="mt-2 text-sm">
+                        <span class="comparison-positive">5 min menos</span> que el promedio
+                    </div>
+                </div>
+                <div id="metricas-grupales-lab">
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <div>
+                            <div class="text-sm font-medium text-[#333333]">Solicitud a espera:</div>
+                            <div class="grid grid-cols-3 gap-1">
+                                <div>
+                                    <div class="text-base font-bold text-[#333333]">20 min</div>
+                                    <div class="text-xs text-[#555555]">Prom</div>
+                                </div>
+                                <div>
+                                    <div class="text-base font-bold text-[#333333]">18 min</div>
+                                    <div class="text-xs text-[#555555]">Med</div>
+                                </div>
+                                <div>
+                                    <div class="text-base font-bold text-[#333333]">30 min</div>
+                                    <div class="text-xs text-[#555555]">P90</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-sm font-medium text-[#333333]">Espera a resultados:</div>
+                            <div class="grid grid-cols-3 gap-1">
+                                <div>
+                                    <div class="text-base font-bold text-[#333333]">45 min</div>
+                                    <div class="text-xs text-[#555555]">Prom</div>
+                                </div>
+                                <div>
+                                    <div class="text-base font-bold text-[#333333]">40 min</div>
+                                    <div class="text-xs text-[#555555]">Med</div>
+                                </div>
+                                <div>
+                                    <div class="text-base font-bold text-[#333333]">65 min</div>
+                                    <div class="text-xs text-[#555555]">P90</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Imágenes Diagnósticas -->
+            <div class="kpi-card rounded-lg shadow-md p-4 semaforo-verde">
+                <div class="flex justify-between items-start mb-2">
+                    <h3 class="text-lg font-semibold text-[#333333]">Imágenes Diagnósticas</h3>
+                    <div class="text-center">
+                        <i class="fas fa-check-circle status-icon status-success"></i>
+                    </div>
+                </div>
+                <div id="metricas-individuales-ix" class="hidden">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <div class="text-xl font-bold text-[#333333] mb-1">18 min</div>
+                            <div class="text-xs text-[#555555]">Solicitud a espera</div>
+                        </div>
+                        <div>
+                            <div class="text-xl font-bold text-[#333333] mb-1">35 min</div>
+                            <div class="text-xs text-[#555555]">Espera a resultados</div>
+                        </div>
+                    </div>
+                    <div class="mt-2 text-sm">
+                        <span class="comparison-positive">10 min menos</span> que el promedio
+                    </div>
+                </div>
+                <div id="metricas-grupales-ix">
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <div>
+                            <div class="text-sm font-medium text-[#333333]">Solicitud a espera:</div>
+                            <div class="grid grid-cols-3 gap-1">
+                                <div>
+                                    <div class="text-base font-bold text-[#333333]">25 min</div>
+                                    <div class="text-xs text-[#555555]">Prom</div>
+                                </div>
+                                <div>
+                                    <div class="text-base font-bold text-[#333333]">22 min</div>
+                                    <div class="text-xs text-[#555555]">Med</div>
+                                </div>
+                                <div>
+                                    <div class="text-base font-bold text-[#333333]">40 min</div>
+                                    <div class="text-xs text-[#555555]">P90</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-sm font-medium text-[#333333]">Espera a resultados:</div>
+                            <div class="grid grid-cols-3 gap-1">
+                                <div>
+                                    <div class="text-base font-bold text-[#333333]">45 min</div>
+                                    <div class="text-xs text-[#555555]">Prom</div>
+                                </div>
+                                <div>
+                                    <div class="text-base font-bold text-[#333333]">40 min</div>
+                                    <div class="text-xs text-[#555555]">Med</div>
+                                </div>
+                                <div>
+                                    <div class="text-base font-bold text-[#333333]">60 min</div>
+                                    <div class="text-xs text-[#555555]">P90</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interconsulta -->
+            <div class="kpi-card rounded-lg shadow-md p-4 semaforo-amarillo">
+                <div class="flex justify-between items-start mb-2">
+                    <h3 class="text-lg font-semibold text-[#333333]">Interconsulta</h3>
+                    <div class="text-center">
+                        <i class="fas fa-exclamation-triangle status-icon status-warning"></i>
+                    </div>
+                </div>
+                <div id="metricas-individuales-ic" class="hidden">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <div class="text-xl font-bold text-[#333333] mb-1">22 min</div>
+                            <div class="text-xs text-[#555555]">No abierta a abierta</div>
+                        </div>
+                        <div>
+                            <div class="text-xl font-bold text-[#333333] mb-1">-- min</div>
+                            <div class="text-xs text-[#555555]">Abierta a realizada</div>
+                        </div>
+                    </div>
+                    <div class="mt-2 text-sm">
+                        <span class="comparison-negative">7 min más</span> que el promedio
+                    </div>
+                </div>
+                <div id="metricas-grupales-ic">
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <div>
+                            <div class="text-sm font-medium text-[#333333]">No abierta a abierta:</div>
+                            <div class="grid grid-cols-3 gap-1">
+                                <div>
+                                    <div class="text-base font-bold text-[#333333]">15 min</div>
+                                    <div class="text-xs text-[#555555]">Prom</div>
+                                </div>
+                                <div>
+                                    <div class="text-base font-bold text-[#333333]">12 min</div>
+                                    <div class="text-xs text-[#555555]">Med</div>
+                                </div>
+                                <div>
+                                    <div class="text-base font-bold text-[#333333]">25 min</div>
+                                    <div class="text-xs text-[#555555]">P90</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-sm font-medium text-[#333333]">Abierta a realizada:</div>
+                            <div class="grid grid-cols-3 gap-1">
+                                <div>
+                                    <div class="text-base font-bold text-[#333333]">35 min</div>
+                                    <div class="text-xs text-[#555555]">Prom</div>
+                                </div>
+                                <div>
+                                    <div class="text-base font-bold text-[#333333]">30 min</div>
+                                    <div class="text-xs text-[#555555]">Med</div>
+                                </div>
+                                <div>
+                                    <div class="text-base font-bold text-[#333333]">50 min</div>
+                                    <div class="text-xs text-[#555555]">P90</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Re-valoración -->
+            <div class="kpi-card rounded-lg shadow-md p-4 semaforo-rojo">
+                <div class="flex justify-between items-start mb-2">
+                    <h3 class="text-lg font-semibold text-[#333333]">Re-valoración</h3>
+                    <div class="text-center">
+                        <i class="fas fa-times-circle status-icon status-danger"></i>
+                    </div>
+                </div>
+                <div id="metricas-individuales-rv" class="hidden">
+                    <div class="text-3xl font-bold text-[#333333] mb-1">-- min</div>
+                    <div class="text-sm text-[#555555]">Tiempo pendiente</div>
+                    <div class="mt-2 text-sm">
+                        <span class="comparison-neutral">Pendiente de realizar</span>
+                    </div>
+                </div>
+                <div id="metricas-grupales-rv">
+                    <div class="grid grid-cols-3 gap-2 mb-2">
+                        <div>
+                            <div class="text-2xl font-bold text-[#333333]">40 min</div>
+                            <div class="text-xs text-[#555555]">Promedio</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-[#333333]">35 min</div>
+                            <div class="text-xs text-[#555555]">Mediana</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold text-[#333333]">60 min</div>
+                            <div class="text-xs text-[#555555]">P90</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-2 text-xs text-[#555555]">
+                    Tiempo desde "no realizada" hasta "realizada"
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráficas -->
+        <div id="graficos-grupales" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- Filtro de fechas para gráficos -->
+            <div class="bg-white rounded-lg shadow-md p-4 col-span-1 lg:col-span-2">
+                <h3 class="text-lg font-semibold text-[#333333] mb-4">Rango de fechas para gráficos</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-[#333333] mb-1">Desde</label>
+                        <input type="date" id="chartDateStart" class="w-full border border-gray-300 rounded-md px-3 py-2" value="2023-12-01">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-[#333333] mb-1">Hasta</label>
+                        <input type="date" id="chartDateEnd" class="w-full border border-gray-300 rounded-md px-3 py-2" value="2023-12-31">
+                    </div>
+                </div>
+                <div class="mt-4 flex justify-end">
+                    <button id="actualizarGraficos" class="bg-[#5385B7] hover:bg-[#659BD1] text-white px-4 py-2 rounded-md">
+                        Actualizar Gráficos
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Línea de tiempo -->
+            <div class="bg-white rounded-lg shadow-md p-4">
+                <h3 class="text-lg font-semibold text-[#333333] mb-4">Tiempo promedio diario de atención</h3>
+                <div class="chart-container">
+                    <canvas id="timelineChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Barras comparativas -->
+            <div class="bg-white rounded-lg shadow-md p-4">
+                <h3 class="text-lg font-semibold text-[#333333] mb-4">Tiempos promedio por etapa</h3>
+                <div class="chart-container">
+                    <canvas id="barChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Gauge de cumplimiento -->
+            <div class="bg-white rounded-lg shadow-md p-4 col-span-1 lg:col-span-2">
+                <h3 class="text-lg font-semibold text-[#333333] mb-4">Cumplimiento de SLA por etapa</h3>
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    <div class="flex flex-col items-center">
+                        <div class="text-sm font-medium text-[#333333] mb-2">Triaje</div>
+                        <div class="relative w-24 h-24">
+                            <canvas id="gaugeTriaje"></canvas>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <span class="text-xl font-bold text-[#333333]">92%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <div class="text-sm font-medium text-[#333333] mb-2">Consulta de Ingreso</div>
+                        <div class="relative w-24 h-24">
+                            <canvas id="gaugeCI"></canvas>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <span class="text-xl font-bold text-[#333333]">85%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <div class="text-sm font-medium text-[#333333] mb-2">Laboratorios</div>
+                        <div class="relative w-24 h-24">
+                            <canvas id="gaugeLab"></canvas>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <span class="text-xl font-bold text-[#333333]">78%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <div class="text-sm font-medium text-[#333333] mb-2">Imágenes</div>
+                        <div class="relative w-24 h-24">
+                            <canvas id="gaugeIX"></canvas>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <span class="text-xl font-bold text-[#333333]">82%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <div class="text-sm font-medium text-[#333333] mb-2">Interconsulta</div>
+                        <div class="relative w-24 h-24">
+                            <canvas id="gaugeIC"></canvas>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <span class="text-xl font-bold text-[#333333]">65%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <div class="text-sm font-medium text-[#333333] mb-2">Re-valoración</div>
+                        <div class="relative w-24 h-24">
+                            <canvas id="gaugeRV"></canvas>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <span class="text-xl font-bold text-[#333333]">70%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráficos para reporte individual -->
+        <div id="graficos-individuales" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 hidden">
+            <!-- Comparación con el área -->
+            <div class="bg-white rounded-lg shadow-md p-4">
+                <h3 class="text-lg font-semibold text-[#333333] mb-4">Comparación con el área</h3>
+                <div class="chart-container">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Comparación con todas las áreas -->
+            <div class="bg-white rounded-lg shadow-md p-4">
+                <h3 class="text-lg font-semibold text-[#333333] mb-4">Comparación con todas las áreas</h3>
+                <div class="chart-container">
+                    <canvas id="allAreasChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de pacientes -->
+        <div id="tabla-pacientes-grupal" class="bg-white rounded-lg shadow-md p-4 mb-6">
+            <h3 class="text-lg font-semibold text-[#333333] mb-4">Lista de pacientes</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead>
+                        <tr>
+                            <th class="px-4 py-3 bg-[#E6E6E6] text-left text-xs font-medium text-[#333333] uppercase tracking-wider">Paciente</th>
+                            <th class="px-4 py-3 bg-[#E6E6E6] text-left text-xs font-medium text-[#333333] uppercase tracking-wider">Documento</th>
+                            <th class="px-4 py-3 bg-[#E6E6E6] text-left text-xs font-medium text-[#333333] uppercase tracking-wider">Área</th>
+                            <th class="px-4 py-3 bg-[#E6E6E6] text-left text-xs font-medium text-[#333333] uppercase tracking-wider">Ingreso</th>
+                            <th class="px-4 py-3 bg-[#E6E6E6] text-left text-xs font-medium text-[#333333] uppercase tracking-wider">Tiempo Total</th>
+                            <th class="px-4 py-3 bg-[#E6E6E6] text-left text-xs font-medium text-[#333333] uppercase tracking-wider">Estado</th>
+                            <th class="px-4 py-3 bg-[#E6E6E6] text-left text-xs font-medium text-[#333333] uppercase tracking-wider"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <tr class="expandable-row table-row-odd">
+                            <td class="px-4 py-3 whitespace-nowrap">Juan Pérez</td>
+                            <td class="px-4 py-3 whitespace-nowrap">CC 12345678</td>
+                            <td class="px-4 py-3 whitespace-nowrap">Urgencias</td>
+                            <td class="px-4 py-3 whitespace-nowrap">2023-12-15 08:30</td>
+                            <td class="px-4 py-3 whitespace-nowrap">3h 45min</td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Alta</span>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-right">
+                                <button class="text-[#0066cc] hover:text-[#004c99]">
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="detail-row">
+                            <td colspan="7" class="px-4 py-3">
+                                <div class="grid grid-cols-3 gap-4">
+                                    <div>
+                                        <h4 class="font-medium text-[#333333]">Triaje</h4>
+                                        <p class="text-sm">Tiempo: 12 min <span class="comparison-positive">(-5 min)</span></p>
+                                        <p class="text-sm">Estado: <i class="fas fa-check-circle text-[#28a745]"></i> Completado</p>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-[#333333]">Consulta de Ingreso</h4>
+                                        <p class="text-sm">Tiempo: 28 min <span class="comparison-negative">(+8 min)</span></p>
+                                        <p class="text-sm">Estado: <i class="fas fa-check-circle text-[#28a745]"></i> Completado</p>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-[#333333]">Laboratorios</h4>
+                                        <p class="text-sm">Tiempo total: 55 min <span class="comparison-positive">(-10 min)</span></p>
+                                        <p class="text-sm">Estado: <i class="fas fa-check-circle text-[#28a745]"></i> Completado</p>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-[#333333]">Imágenes</h4>
+                                        <p class="text-sm">Tiempo total: 53 min <span class="comparison-positive">(-17 min)</span></p>
+                                        <p class="text-sm">Estado: <i class="fas fa-check-circle text-[#28a745]"></i> Completado</p>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-[#333333]">Interconsulta</h4>
+                                        <p class="text-sm">Tiempo: 22 min <span class="comparison-negative">(+7 min)</span></p>
+                                        <p class="text-sm">Estado: <i class="fas fa-exclamation-triangle text-[#E6B800]"></i> Abierta</p>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-[#333333]">Re-valoración</h4>
+                                        <p class="text-sm">Tiempo: Pendiente</p>
+                                        <p class="text-sm">Estado: <i class="fas fa-times-circle text-[#B75353]"></i> No realizada</p>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="expandable-row table-row-even">
+                            <td class="px-4 py-3 whitespace-nowrap">María López</td>
+                            <td class="px-4 py-3 whitespace-nowrap">CC 87654321</td>
+                            <td class="px-4 py-3 whitespace-nowrap">Pediatría</td>
+                            <td class="px-4 py-3 whitespace-nowrap">2023-12-15 09:15</td>
+                            <td class="px-4 py-3 whitespace-nowrap">2h 30min</td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Alta</span>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-right">
+                                <button class="text-[#0066cc] hover:text-[#004c99]">
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="detail-row">
+                            <td colspan="7" class="px-4 py-3">
+                                <div class="grid grid-cols-3 gap-4">
+                                    <div>
+                                        <h4 class="font-medium text-[#333333]">Triaje</h4>
+                                        <p class="text-sm">Tiempo: 10 min <span class="comparison-positive">(-7 min)</span></p>
+                                        <p class="text-sm">Estado: <i class="fas fa-check-circle text-[#28a745]"></i> Completado</p>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-[#333333]">Consulta de Ingreso</h4>
+                                        <p class="text-sm">Tiempo: 15 min <span class="comparison-positive">(-5 min)</span></p>
+                                        <p class="text-sm">Estado: <i class="fas fa-check-circle text-[#28a745]"></i> Completado</p>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-[#333333]">Laboratorios</h4>
+                                        <p class="text-sm">Tiempo total: 45 min <span class="comparison-positive">(-20 min)</span></p>
+                                        <p class="text-sm">Estado: <i class="fas fa-check-circle text-[#28a745]"></i> Completado</p>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-[#333333]">Imágenes</h4>
+                                        <p class="text-sm">Tiempo total: N/A</p>
+                                        <p class="text-sm">Estado: No requerido</p>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-[#333333]">Interconsulta</h4>
+                                        <p class="text-sm">Tiempo: N/A</p>
+                                        <p class="text-sm">Estado: No requerido</p>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-[#333333]">Re-valoración</h4>
+                                        <p class="text-sm">Tiempo: 30 min <span class="comparison-positive">(-10 min)</span></p>
+                                        <p class="text-sm">Estado: <i class="fas fa-check-circle text-[#28a745]"></i> Completado</p>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="expandable-row table-row-odd">
+                            <td class="px-4 py-3 whitespace-nowrap">Carlos Rodríguez</td>
+                            <td class="px-4 py-3 whitespace-nowrap">CC 23456789</td>
+                            <td class="px-4 py-3 whitespace-nowrap">Traumatología</td>
+                            <td class="px-4 py-3 whitespace-nowrap">2023-12-15 10:45</td>
+                            <td class="px-4 py-3 whitespace-nowrap">4h 15min</td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">En observación</span>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-right">
+                                <button class="text-[#0066cc] hover:text-[#004c99]">
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="detail-row">
+                            <td colspan="7" class="px-4 py-3">
+                                <div class="grid grid-cols-3 gap-4">
+                                    <div>
+                                        <h4 class="font-medium text-[#333333]">Triaje</h4>
+                                        <p class="text-sm">Tiempo: 8 min <span class="comparison-positive">(-9 min)</span></p>
+                                        <p class="text-sm">Estado: <i class="fas fa-check-circle text-[#28a745]"></i> Completado</p>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-[#333333]">Consulta de Ingreso</h4>
+                                        <p class="text-sm">Tiempo: 25 min <span class="comparison-negative">(+5 min)</span></p>
+                                        <p class="text-sm">Estado: <i class="fas fa-check-circle text-[#28a745]"></i> Completado</p>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-[#333333]">Laboratorios</h4>
+                                        <p class="text-sm">Tiempo total: 60 min <span class="comparison-positive">(-5 min)</span></p>
+                                        <p class="text-sm">Estado: <i class="fas fa-check-circle text-[#28a745]"></i> Completado</p>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-[#333333]">Imágenes</h4>
+                                        <p class="text-sm">Tiempo total: 75 min <span class="comparison-negative">(+5 min)</span></p>
+                                        <p class="text-sm">Estado: <i class="fas fa-check-circle text-[#28a745]"></i> Completado</p>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-[#333333]">Interconsulta</h4>
+                                        <p class="text-sm">Tiempo: 45 min <span class="comparison-negative">(+10 min)</span></p>
+                                        <p class="text-sm">Estado: <i class="fas fa-check-circle text-[#28a745]"></i> Completado</p>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-[#333333]">Re-valoración</h4>
+                                        <p class="text-sm">Tiempo: Pendiente</p>
+                                        <p class="text-sm">Estado: <i class="fas fa-times-circle text-[#B75353]"></i> No realizada</p>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tabla de paciente individual -->
+        <div id="tabla-paciente-individual" class="bg-white rounded-lg shadow-md p-4 mb-6 hidden">
+            <h3 class="text-lg font-semibold text-[#333333] mb-4">Detalle del paciente</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead>
+                        <tr>
+                            <th class="px-4 py-3 bg-[#E6E6E6] text-left text-xs font-medium text-[#333333] uppercase tracking-wider">Paciente</th>
+                            <th class="px-4 py-3 bg-[#E6E6E6] text-left text-xs font-medium text-[#333333] uppercase tracking-wider">Documento</th>
+                            <th class="px-4 py-3 bg-[#E6E6E6] text-left text-xs font-medium text-[#333333] uppercase tracking-wider">Área</th>
+                            <th class="px-4 py-3 bg-[#E6E6E6] text-left text-xs font-medium text-[#333333] uppercase tracking-wider">Ingreso</th>
+                            <th class="px-4 py-3 bg-[#E6E6E6] text-left text-xs font-medium text-[#333333] uppercase tracking-wider">Tiempo Total</th>
+                            <th class="px-4 py-3 bg-[#E6E6E6] text-left text-xs font-medium text-[#333333] uppercase tracking-wider">Estado</th>
+                            <th class="px-4 py-3 bg-[#E6E6E6] text-left text-xs font-medium text-[#333333] uppercase tracking-wider"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <tr class="expandable-row table-row-odd">
+                            <td class="px-4 py-3 whitespace-nowrap">Juan Pérez</td>
+                            <td class="px-4 py-3 whitespace-nowrap">CC 12345678</td>
+                            <td class="px-4 py-3 whitespace-nowrap">Urgencias</td>
+                            <td class="px-4 py-3 whitespace-nowrap">2023-12-15 08:30</td>
+                            <td class="px-4 py-3 whitespace-nowrap">3h 45min</td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Alta</span>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-right">
+                                <button class="text-[#0066cc] hover:text-[#004c99]">
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="detail-row" style="display: table-row;">
+                            <td colspan="7" class="px-4 py-3">
+                                <div class="grid grid-cols-3 gap-4">
+                                    <div>
+                                        <h4 class="font-medium text-[#333333]">Triaje</h4>
+                                        <p class="text-sm">Tiempo: 12 min <span class="comparison-positive">(-5 min)</span></p>
+                                        <p class="text-sm">Estado: <i class="fas fa-check-circle text-[#28a745]"></i> Completado</p>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-[#333333]">Consulta de Ingreso</h4>
+                                        <p class="text-sm">Tiempo: 28 min <span class="comparison-negative">(+8 min)</span></p>
+                                        <p class="text-sm">Estado: <i class="fas fa-check-circle text-[#28a745]"></i> Completado</p>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-[#333333]">Laboratorios</h4>
+                                        <p class="text-sm">Tiempo total: 55 min <span class="comparison-positive">(-10 min)</span></p>
+                                        <p class="text-sm">Estado: <i class="fas fa-check-circle text-[#28a745]"></i> Completado</p>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-[#333333]">Imágenes</h4>
+                                        <p class="text-sm">Tiempo total: 53 min <span class="comparison-positive">(-17 min)</span></p>
+                                        <p class="text-sm">Estado: <i class="fas fa-check-circle text-[#28a745]"></i> Completado</p>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-[#333333]">Interconsulta</h4>
+                                        <p class="text-sm">Tiempo: 22 min <span class="comparison-negative">(+7 min)</span></p>
+                                        <p class="text-sm">Estado: <i class="fas fa-exclamation-triangle text-[#E6B800]"></i> Abierta</p>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-[#333333]">Re-valoración</h4>
+                                        <p class="text-sm">Tiempo: Pendiente</p>
+                                        <p class="text-sm">Estado: <i class="fas fa-times-circle text-[#B75353]"></i> No realizada</p>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="./templates/script.js"></script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93819b16c5443ed7',t:'MTc0NTk1OTEzNi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

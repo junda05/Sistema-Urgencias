@@ -1,0 +1,150 @@
+:root {
+    --background-primary: #F0F5FA;
+    --background-white: white;
+    --background-warning: #FFF9C2;
+    --background-error: #FFE8E8;
+    --background-readonly: #E8F0F7;
+    --background-transparent: transparent;
+    --background-table-header: #E6E6E6;
+    --background-secondary: #ffffff;
+    --background-login: #4A7296;
+    --background-header: #D5E5F3;
+    --button-primary: #5385B7;
+    --button-primary-hover: #659BD1;
+    --button-danger: #B75353;
+    --button-danger-hover: #D16565;
+    --button-danger-hover-sky: #E1A5A5;
+    --button-warning: #E6B800;
+    --button-warning-hover: #FFCC00;
+    --button-close: red;
+    --button-transparent: rgba(0, 0, 0, 0.1);
+    --button-secondary: #6c757d;
+    --button-success: #28a745;
+    --button-logout: #FF6B6B;
+    --text-primary: #333333;
+    --text-light: #555555;
+    --text-white: white;
+    --text-required: #D35400;
+    --link: #0066cc;
+    --text-secondary: #6c757d;
+    --comparison-positive: #28a745;
+    --comparison-negative: #B75353;
+    --comparison-neutral: #E6B800;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--background-primary);
+    color: var(--text-primary);
+}
+
+.kpi-card {
+    transition: all 0.3s ease;
+    background-color: var(--background-white);
+}
+
+.kpi-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.tab {
+    transition: all 0.3s ease;
+    color: var(--text-light);
+}
+
+.tab.active {
+    border-bottom: 3px solid var(--button-primary);
+    color: var(--button-primary);
+    font-weight: 600;
+}
+
+.semaforo-rojo {
+    border-left: 4px solid var(--button-danger);
+}
+
+.semaforo-amarillo {
+    border-left: 4px solid var(--button-warning);
+}
+
+.semaforo-verde {
+    border-left: 4px solid var(--button-success);
+}
+
+.table-row-even {
+    background-color: var(--background-white);
+}
+
+.table-row-odd {
+    background-color: var(--background-primary);
+}
+
+.expandable-row {
+    cursor: pointer;
+}
+
+.detail-row {
+    display: none;
+    background-color: var(--background-readonly);
+}
+
+.chart-container {
+    position: relative;
+    height: 250px;
+    width: 100%;
+}
+
+.btn-primary {
+    background-color: var(--button-primary);
+    color: var(--text-white);
+}
+
+.btn-primary:hover {
+    background-color: var(--button-primary-hover);
+}
+
+.btn-danger {
+    background-color: var(--button-danger);
+    color: var(--text-white);
+}
+
+.btn-danger:hover {
+    background-color: var(--button-danger-hover);
+}
+
+.btn-success {
+    background-color: var(--button-success);
+    color: var(--text-white);
+}
+
+.comparison-positive {
+    color: var(--comparison-positive);
+    font-weight: 600;
+}
+
+.comparison-negative {
+    color: var(--comparison-negative);
+    font-weight: 600;
+}
+
+.comparison-neutral {
+    color: var(--comparison-neutral);
+    font-weight: 600;
+}
+
+.status-icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.status-success {
+    color: var(--button-success);
+}
+
+.status-warning {
+    color: var(--button-warning);
+}
+
+.status-danger {
+    color: var(--button-danger);
+}
