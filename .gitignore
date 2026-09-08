@@ -1,5 +1,5 @@
 # Ignore large executable files
-Ejecutable/Sistema_Visualizacion.exe
+executable/Urgentix.exe
 
 # Python cache files
 __pycache__/
@@ -73,4 +73,6 @@ ehthumbs.db
 Thumbs.db
 
 # User preferences
-preferencias/*.json
+preferences/*.json
+# Outlier submission guidelines (reference material, not project source)
+Guidelines/

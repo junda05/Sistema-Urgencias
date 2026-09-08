@@ -1,77 +1,71 @@
 import os
 import sys
 import PyInstaller.__main__
-import shutil
 
-# Obtener el directorio actual
-ruta_base = os.path.dirname(os.path.abspath(__file__))
+# Project root
+base_path = os.path.dirname(os.path.abspath(__file__))
 
-# Definir rutas
-script_principal = os.path.join(ruta_base, 'Código_Principal.py')
-carpeta_imagenes = os.path.join(ruta_base, 'Front_end', 'imagenes')
-carpeta_estilos = os.path.join(ruta_base, 'Front_end', 'styles')
-ruta_icono = os.path.join(carpeta_imagenes, 'logo.png')
-archivo_config = os.path.join(ruta_base, 'config.ini')
+# Paths
+main_script = os.path.join(base_path, 'main.py')
+images_folder = os.path.join(base_path, 'frontend', 'images')
+styles_folder = os.path.join(base_path, 'frontend', 'styles')
+icon_path = os.path.join(images_folder, 'logo.png')
+config_file = os.path.join(base_path, 'config.ini')
 
-# Verificar si existe la carpeta de imágenes
-if not os.path.exists(carpeta_imagenes):
-    os.makedirs(carpeta_imagenes, exist_ok=True)
-    print(f"Carpeta de imágenes creada en: {carpeta_imagenes}")
-    print("Por favor coloque su archivo logo.png en esta carpeta antes de compilar.")
+if not os.path.exists(images_folder):
+    os.makedirs(images_folder, exist_ok=True)
+    print(f"Images folder created at: {images_folder}")
+    print("Please place logo.png in this folder before building.")
     sys.exit(1)
 
-# Verificar si existe el archivo de logo
-if not os.path.exists(ruta_icono):
-    print(f"Error: Archivo de logo no encontrado en {ruta_icono}")
-    print("Por favor coloque su archivo logo.png en la carpeta de imágenes antes de compilar.")
+if not os.path.exists(icon_path):
+    print(f"Error: logo file not found at {icon_path}")
+    print("Please place logo.png in the images folder before building.")
     sys.exit(1)
 
-print("Iniciando proceso de compilación con PyInstaller...")
-print(f"Script principal: {script_principal}")
-print(f"Carpeta de imágenes: {carpeta_imagenes}")
-print(f"Carpeta de estilos: {carpeta_estilos}")
-print(f"Ruta del icono: {ruta_icono}")
-print(f"Archivo de configuración: {archivo_config}")
+print("Starting the build process with PyInstaller...")
+print(f"Main script: {main_script}")
+print(f"Images folder: {images_folder}")
+print(f"Styles folder: {styles_folder}")
+print(f"Icon path: {icon_path}")
+print(f"Configuration file: {config_file}")
 
-# Preparar argumentos de datos con separadores adecuados
-separador = ";" if sys.platform.startswith("win") else ":"
-argumentos_datos = [
-    f'--add-data={carpeta_imagenes}{separador}Front_end/imagenes',
-    f'--add-data={carpeta_estilos}{separador}Front_end/styles',
-    f'--add-data={archivo_config}{separador}.'
+separator = ";" if sys.platform.startswith("win") else ":"
+data_arguments = [
+    f'--add-data={images_folder}{separator}frontend/images',
+    f'--add-data={styles_folder}{separator}frontend/styles',
+    f'--add-data={config_file}{separator}.'
 ]
 
-# Argumentos para PyInstaller
-argumentos_pyinstaller = [
-    '--name=Sistema_Visualizacion',
-    '--onefile',  # Crear un único archivo ejecutable
-    '--windowed',  # Ejecutar sin ventana de consola
-    f'--icon={ruta_icono}',
-] + argumentos_datos + [
+pyinstaller_arguments = [
+    '--name=Urgentix',
+    '--onefile',  # Build a single executable file
+    '--windowed',  # Run without a console window
+    f'--icon={icon_path}',
+] + data_arguments + [
     '--hidden-import=pymysql',
     '--hidden-import=configparser',
+    '--hidden-import=unidecode',
     '--hidden-import=PIL',
     '--hidden-import=PIL.Image',
     '--hidden-import=PIL.ImageFilter',
-    # Importaciones para funcionalidad web
+    # Web functionality
     '--hidden-import=PyQt5.QtWebEngineWidgets',
     '--hidden-import=PyQt5.QtWebChannel',
     '--hidden-import=json',
-    # Recolectar submódulos
+    # Collect submodules
     '--collect-submodules=PyQt5.QtWebEngineWidgets',
     '--collect-data=PyQt5.QtWebEngineWidgets',
-    '--clean',  # Limpiar caché de PyInstaller
-    script_principal
+    '--clean',  # Clear the PyInstaller cache
+    main_script
 ]
 
-# Ejecutar PyInstaller
-PyInstaller.__main__.run(argumentos_pyinstaller)
+PyInstaller.__main__.run(pyinstaller_arguments)
 
-# Verificar resultado
-directorio_salida = os.path.join(ruta_base, 'dist')
-if os.path.exists(directorio_salida):
-    print("Compilación completada.")
-    print("Ejecutable disponible en la carpeta 'dist'.")
-    print("Asegúrese que la funcionalidad web funcione probando el generador de reportes.")
+output_directory = os.path.join(base_path, 'dist')
+if os.path.exists(output_directory):
+    print("Build completed.")
+    print("The executable is available in the 'dist' folder.")
+    print("Verify the web functionality by testing the report generator.")
 else:
-    print("La compilación puede haber encontrado un problema. Verifique los errores anteriores.")
+    print("Build failed. Check the PyInstaller output above for errors.")

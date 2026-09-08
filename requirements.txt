@@ -1,31 +1,25 @@
-# Sistema de Visualización de Urgencias - FOSCAL
-# Dependencias de Python
+# Urgentix - Emergency Department Visualization System
+# Python dependencies
 
-# Framework GUI
+# GUI framework
 PyQt5>=5.15.0
 PyQt5-Qt5>=5.15.2
 PyQt5-sip>=12.11.0
 
-# Base de datos
+# Embedded web view, used by the report generator and PDF export
+PyQtWebEngine>=5.15.0
+
+# Database driver
 PyMySQL>=1.0.2
 
-# Procesamiento de datos y análisis
+# Text normalization for patient name matching
+Unidecode>=1.3.0
+
+# Numeric calculations for the metrics module
 numpy>=1.24.0
-pandas>=2.0.0
 
-# Visualización y gráficos
-matplotlib>=3.7.0
-
-# Generación de reportes PDF
-reportlab>=4.0.0
+# Image processing for the login background
 Pillow>=10.0.0
 
-# Plantillas HTML
-jinja2>=3.1.0
-
-# Compilación de ejecutables
+# Executable packaging (build only)
 pyinstaller>=5.13.0
-
-# Utilidades adicionales
-python-dateutil>=2.8.0
-pytz>=2023.3
