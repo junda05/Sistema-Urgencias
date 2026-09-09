@@ -28,8 +28,13 @@ CATALOG_SOURCES = [
     ("radiology_procedure_catalog.xlsx", "imaging_catalog", "imaging_code", "imaging_name"),
 ]
 
-# Folders searched for the spreadsheets, relative to the application root
-CANDIDATE_FOLDERS = ["inputs", "data", "catalogs", os.path.join("..", "inputs")]
+# Folder names that may hold the spreadsheets
+CANDIDATE_FOLDERS = ["inputs", "data", "catalogs"]
+
+# How far above the application root to keep looking. The packaged executable
+# reports its own folder as the root, so the catalogs delivered alongside the
+# application sit two levels up from it rather than one.
+SEARCH_LEVELS_ABOVE = 2
 
 
 def application_root():
@@ -39,11 +44,17 @@ def application_root():
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
+def candidate_folders():
+    """Yields every folder to search, nearest to the application root first."""
+    base = application_root()
+    for level in range(SEARCH_LEVELS_ABOVE + 1):
+        for folder in CANDIDATE_FOLDERS:
+            yield os.path.normpath(os.path.join(base, *([".."] * level), folder))
+
+
 def find_catalog_folder():
     """Returns the first folder that holds at least one catalog spreadsheet."""
-    root = application_root()
-    for folder in CANDIDATE_FOLDERS:
-        candidate = os.path.normpath(os.path.join(root, folder))
+    for candidate in candidate_folders():
         if not os.path.isdir(candidate):
             continue
         for file_name, _, _, _ in CATALOG_SOURCES:
