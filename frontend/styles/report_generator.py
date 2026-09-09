@@ -332,15 +332,15 @@ class ReportGenerator(QDialog):
 
         <!-- Total Care Time (separate KPI card) -->
         <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+            <!-- No status icon here: this card is not a .kpi-card, so the script that
+                 drives the indicators never reaches it. A hardcoded green tick would
+                 stay green whatever the number said. -->
             <div class="flex justify-between items-start mb-2">
                 <h3 class="text-lg font-semibold text-[#333333]">Total Care Time</h3>
-                <div class="text-center">
-                    <i class="fas fa-check-circle status-icon status-success"></i>
-                </div>
             </div>
             <div id="individual-metrics-total" class="hidden">
                 <div class="text-3xl font-bold text-[#333333] mb-1">{{TOTAL_TIME}} min</div>
-                <div class="text-sm text-[#555555]">Classification time</div>
+                <div class="text-sm text-[#555555]">Admission to final disposition</div>
                 <div class="mt-2 text-sm">
                     {{COMPARISON_TOTAL}}
                 </div>
