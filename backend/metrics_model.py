@@ -865,7 +865,10 @@ class MetricsModel:
                 grouping = "hourly"
                 format_str = "%H:%M"
                 sql_format = "%H"
-                group_by = "HOUR(admission)"
+                # Grouped by day and hour, not by hour alone: bucketing on HOUR()
+                # merges the same clock hour from different days into one point,
+                # so a two-day range came out as a single scrambled 24-hour cycle.
+                group_by = "DATE_FORMAT(admission, '%%Y-%%m-%%d %%H')"
             elif days_difference > 2 and days_difference <= 31:  # Up to a month: show daily
                 grouping = "daily"
                 format_str = "%d %b"
@@ -930,10 +933,15 @@ class MetricsModel:
 
                 # Format date string based on grouping
                 if grouping == "hourly":
-                    # Handle hourly format - the date_str will be the hour (0-23)
+                    # date_str is "YYYY-MM-DD HH". A single day needs only the clock
+                    # time; a range spanning more than one needs the day as well, or
+                    # two different afternoons read as the same point.
                     try:
-                        hour = int(date_str)
-                        labels.append(f"{hour:02d}:00")
+                        date_obj = datetime.strptime(date_str, "%Y-%m-%d %H")
+                        if days_difference == 0:
+                            labels.append(date_obj.strftime("%H:00"))
+                        else:
+                            labels.append(date_obj.strftime("%d %b %H:00"))
                     except ValueError:
                         labels.append(f"Hour {date_str}")
                 elif grouping == "daily":
