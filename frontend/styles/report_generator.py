@@ -1129,12 +1129,12 @@ class ReportGenerator(QDialog):
             });
 
             // Initialize the gauge charts with their real values and matching colors
-            createGauge('gaugeTriage', {{COMPLIANCE_TRIAGE}}, 0);
-            createGauge('gaugeAdmission', {{COMPLIANCE_ADMISSION}}, 1);
-            createGauge('gaugeLab', {{COMPLIANCE_LABS}}, 2);
-            createGauge('gaugeImaging', {{COMPLIANCE_IMAGING}}, 3);
-            createGauge('gaugeSpecialist', {{COMPLIANCE_SPECIALIST}}, 4);
-            createGauge('gaugeReassessment', {{COMPLIANCE_REASSESSMENT}}, 5);
+            createGauge('gaugeTriage', {{GAUGE_TRIAGE}}, 0);
+            createGauge('gaugeAdmission', {{GAUGE_ADMISSION}}, 1);
+            createGauge('gaugeLab', {{GAUGE_LABS}}, 2);
+            createGauge('gaugeImaging', {{GAUGE_IMAGING}}, 3);
+            createGauge('gaugeSpecialist', {{GAUGE_SPECIALIST}}, 4);
+            createGauge('gaugeReassessment', {{GAUGE_REASSESSMENT}}, 5);
         }
 
         function createGauge(elementId, value, colorIndex) {
@@ -2353,6 +2353,34 @@ class ReportGenerator(QDialog):
             values[stage] = self.format_chart_number(average)
         return values
 
+    def compliance_percentages(self, data):
+        """
+        Service level compliance per stage, as whole percentages.
+
+        The group report carries them ready made; the individual report derives
+        them from that patient's own times. Both paths end here so the gauges and
+        their captions are filled the same way whichever report is being shown.
+        """
+        stages = ["triage", "admission_consult", "labs", "imaging",
+                  "specialist_consult", "reassessment"]
+        values = {stage: 0 for stage in stages}
+
+        source = data.get("sla")
+        if not source and data.get("individual", False):
+            try:
+                source = self.calculate_individual_sla_compliance(data.get("metrics", {}) or {})
+            except Exception as error:
+                print(f"Could not calculate the individual compliance: {error}")
+                source = None
+
+        if isinstance(source, dict):
+            for stage in stages:
+                try:
+                    values[stage] = int(round(float(source.get(stage, 0) or 0)))
+                except (TypeError, ValueError):
+                    values[stage] = 0
+        return values
+
     def replace_data_in_html(self, html_content, data):
         """Replaces the placeholders in the HTML with real data"""
         try:
@@ -2392,6 +2420,21 @@ class ReportGenerator(QDialog):
                     ("reassessment", "CHART_REASSESSMENT_AVERAGE")):
                 html_content = html_content.replace(
                     "{{" + placeholder + "}}", chart_values[stage])
+
+            # Compliance feeds both a percentage on the card and a numeric argument to
+            # the gauge script, and it is produced differently in each mode. Resolve it
+            # once here so neither context is left with an unreplaced placeholder.
+            compliance = self.compliance_percentages(data)
+            for stage, text_marker, gauge_marker in (
+                    ("triage", "COMPLIANCE_TRIAGE", "GAUGE_TRIAGE"),
+                    ("admission_consult", "COMPLIANCE_ADMISSION", "GAUGE_ADMISSION"),
+                    ("labs", "COMPLIANCE_LABS", "GAUGE_LABS"),
+                    ("imaging", "COMPLIANCE_IMAGING", "GAUGE_IMAGING"),
+                    ("specialist_consult", "COMPLIANCE_SPECIALIST", "GAUGE_SPECIALIST"),
+                    ("reassessment", "COMPLIANCE_REASSESSMENT", "GAUGE_REASSESSMENT")):
+                value = compliance[stage]
+                html_content = html_content.replace("{{" + text_marker + "}}", str(value))
+                html_content = html_content.replace("{{" + gauge_marker + "}}", str(value))
 
             if data.get("individual", False):
                 patient = data["patient"]
@@ -2794,14 +2837,7 @@ class ReportGenerator(QDialog):
                     html_content = html_content.replace("{{TOTAL_MEDIAN}}", self.format_time(total_time['statistics'].get('median', '-')))
                     html_content = html_content.replace("{{TOTAL_P90}}", self.format_time(total_time['statistics'].get('p90', '-')))
 
-                # Data for the gauge charts (SLA compliance)
-                sla = data["sla"]
-                html_content = html_content.replace("{{COMPLIANCE_TRIAGE}}", str(sla["triage"]))
-                html_content = html_content.replace("{{COMPLIANCE_ADMISSION}}", str(sla["admission_consult"]))
-                html_content = html_content.replace("{{COMPLIANCE_LABS}}", str(sla["labs"]))
-                html_content = html_content.replace("{{COMPLIANCE_IMAGING}}", str(sla["imaging"]))
-                html_content = html_content.replace("{{COMPLIANCE_SPECIALIST}}", str(sla["specialist_consult"]))
-                html_content = html_content.replace("{{COMPLIANCE_REASSESSMENT}}", str(sla["reassessment"]))
+                # Compliance for the gauges is resolved once for both modes, above.
 
             # If there is SLA and metrics data, generate the JavaScript to update the status indicators
             if "sla" in data and "metrics" in data:
@@ -2939,14 +2975,26 @@ class ReportGenerator(QDialog):
         """
         Replaces any placeholder no branch above filled in.
 
-        A stage with no data leaves its placeholder untouched. Left in place it
-        shows as raw {{...}} in the interface, and inside a script it is a
-        syntax error that stops every other script on the page from running,
-        so chart placeholders fall back to null and the rest to the same "--"
-        the cards use for missing values.
+        A stage with no data can leave its placeholder untouched. What the
+        fallback has to be depends on where the placeholder sits: in the page it
+        should read as missing data, but inside a script it has to stay valid
+        JavaScript, because one bad token there stops every script on the page —
+        including the tab switching, which strands the user in whichever report
+        they were looking at.
+
+        So the fallback is chosen per region rather than per placeholder name,
+        which also covers placeholders added later.
         """
-        html_content = re.sub(r"\{\{CHART_[A-Z0-9_]+\}\}", "null", html_content)
-        return re.sub(r"\{\{[A-Z0-9_]+\}\}", "--", html_content)
+        placeholder = re.compile(r"\{\{[A-Z0-9_]+\}\}")
+        parts = re.split(r"(<script\b[^>]*>.*?</script>)", html_content, flags=re.S | re.I)
+
+        for index, part in enumerate(parts):
+            if not placeholder.search(part):
+                continue
+            inside_script = bool(re.match(r"<script\b", part, re.I))
+            parts[index] = placeholder.sub("0" if inside_script else "--", part)
+
+        return "".join(parts)
 
     def export_pdf(self):
         """Exports the current report to PDF"""
