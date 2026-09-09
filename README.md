@@ -31,13 +31,27 @@ Windows install it is at:
 C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe
 ```
 
-Every command below assumes you have put it in a variable first:
+**Where to stand.** Every command in this guide uses paths relative to the `deliverable`
+folder, so open PowerShell there before you begin. The package looks like this:
+
+```
+<the folder you unpacked>
+├── brief.md
+├── inputs/          the exam catalog spreadsheets and the logo
+└── deliverable/     <- stand here
+```
+
+```powershell
+cd <the folder you unpacked>\deliverable
+```
+
+Every command below also assumes you have put the client in a variable first:
 
 ```powershell
 $mysql = 'C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe'
 ```
 
-Check the server is up:
+Check the server is up — it must say `Running`:
 
 ```powershell
 Get-Service -Name "*mysql*"
@@ -187,14 +201,15 @@ No Python, no dependencies. You need Part 1 done and MySQL running.
 ## 2.1 Check the folder layout
 
 ```
-deliverable/
-  executable/
-    Urgentix.exe      <- run this
-    config.ini        <- must stay beside the executable
-inputs/
-  laboratory_test_catalog.xlsx
-  imaging_procedure_catalog.xlsx
-  radiology_procedure_catalog.xlsx
+<the folder you unpacked>
+├── inputs/
+│     laboratory_test_catalog.xlsx
+│     imaging_procedure_catalog.xlsx
+│     radiology_procedure_catalog.xlsx
+└── deliverable/                     <- stand here
+      executable/
+        Urgentix.exe                 <- run this
+        config.ini                   <- must stay beside the executable
 ```
 
 Two things matter here:
@@ -245,7 +260,7 @@ You need Part 1 done, MySQL running, and Python 3.8 or later (3.13 tested).
 
 ## 3.1 Install the dependencies
 
-From the project folder:
+From the deliverable folder (where you stood in 1.1):
 
 ```powershell
 pip install -r requirements.txt
@@ -261,7 +276,7 @@ pipenv install -r requirements.txt
 
 ## 3.2 Point it at your server
 
-`config.ini` in the project folder — same format and same options as in 2.2:
+`config.ini` in the `deliverable` folder — same format and same options as in 2.2:
 
 ```ini
 [DATABASE]
@@ -272,7 +287,7 @@ host = localhost
 
 The application imports the laboratory and imaging catalogs on first login, from the
 spreadsheets delivered with this package. It searches for a folder named `inputs`, `data`
-or `catalogs` in the project folder and up to two levels above it, so the delivered layout
+or `catalogs` in the `deliverable` folder and up to two levels above it, so the delivered layout
 works unchanged.
 
 Each file needs the exam code in the first column and the exam name in the second, with
