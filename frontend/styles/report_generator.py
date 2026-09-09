@@ -87,9 +87,15 @@ class ReportGenerator(QDialog):
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Medical Reports Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Loaded from the application folder, not from a CDN. The view's base URL is
+         the application root, so these resolve without an absolute path. A hospital
+         workstation is often on a restricted network, and pulling these over the
+         internet meant the dashboard rendered unstyled and chartless there, and the
+         exported PDF with it. Pinned copies also stop an upstream release changing
+         the report underneath us. -->
+    <script src="frontend/styles/assets/tailwind.min.js"></script>
+    <link href="frontend/styles/assets/css/fontawesome.min.css" rel="stylesheet">
+    <script src="frontend/styles/assets/chart.umd.min.js"></script>
     <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
     <style>
         :root {
