@@ -1246,6 +1246,9 @@ class DoctorView(QMainWindow):
             success, message, patient_id = self.model.save_patient_data(data=data, location=location)
 
             if success:
+                # Update timestamps for the initial statuses (those that are not empty)
+                self.model.record_status_timestamps(patient_id, data)
+
                 # Save the selected labs
                 if labs:
                     # The model will already validate triage and admission consult
@@ -1651,6 +1654,9 @@ class DoctorView(QMainWindow):
 
             if success:
                 patient_id = original_record[13]  # ID at position 13
+
+                # Update every status that changed with its corresponding timestamp
+                self.model.record_status_timestamps(patient_id, data, original_record)
 
                 # Get the original labs
                 current_labs = self.model.get_patient_labs(patient_id)

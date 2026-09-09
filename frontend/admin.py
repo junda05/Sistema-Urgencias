@@ -1343,26 +1343,7 @@ class AdminView(QMainWindow):
 
             if success and patient_id:
                 # Update timestamps for the initial statuses (those that are not empty)
-                if data['triage']:
-                    self.model.update_status_with_timestamp(patient_id, 'triage', data['triage'])
-
-                if data['admission_consult']:
-                    self.model.update_status_with_timestamp(patient_id, 'admission_consult', data['admission_consult'])
-
-                if data['labs']:
-                    self.model.update_status_with_timestamp(patient_id, 'labs', data['labs'])
-
-                if data['imaging']:
-                    self.model.update_status_with_timestamp(patient_id, 'imaging', data['imaging'])
-
-                if data['specialist_consult']:
-                    self.model.update_status_with_timestamp(patient_id, 'specialist_consult', data['specialist_consult'])
-
-                if data['reassessment']:
-                    self.model.update_status_with_timestamp(patient_id, 'reassessment', data['reassessment'])
-
-                if data['disposition']:
-                    self.model.update_status_with_timestamp(patient_id, 'disposition', data['disposition'])
+                self.model.record_status_timestamps(patient_id, data)
                 # Update the table and show a success message
                 dialog.close()
                 self.update_table()
@@ -1765,27 +1746,8 @@ class AdminView(QMainWindow):
             if success:
                 patient_id = original_record[13]  # ID at position 13
 
-                # Update every status with its corresponding timestamp
-                if data['triage'] != original_record[2]:  # If triage changed
-                    self.model.update_status_with_timestamp(patient_id, 'triage', data['triage'])
-
-                if data['admission_consult'] != original_record[4]:  # If Admission Consult changed
-                    self.model.update_status_with_timestamp(patient_id, 'admission_consult', data['admission_consult'])
-
-                if data['labs'] != original_record[5]:  # If Labs changed
-                    self.model.update_status_with_timestamp(patient_id, 'labs', data['labs'])
-
-                if data['imaging'] != original_record[6]:  # If Imaging changed
-                    self.model.update_status_with_timestamp(patient_id, 'imaging', data['imaging'])
-
-                if data['specialist_consult'] != original_record[7]:  # If Specialist Consult changed
-                    self.model.update_status_with_timestamp(patient_id, 'specialist_consult', data['specialist_consult'])
-
-                if data['reassessment'] != original_record[8]:  # If Reassessment changed
-                    self.model.update_status_with_timestamp(patient_id, 'reassessment', data['reassessment'])
-
-                if data['disposition'] != original_record[10]:  # If Disposition changed
-                    self.model.update_status_with_timestamp(patient_id, 'disposition', data['disposition'])
+                # Update every status that changed with its corresponding timestamp
+                self.model.record_status_timestamps(patient_id, data, original_record)
 
                 # Get the original labs
                 current_labs = self.model.get_patient_labs(patient_id)

@@ -756,6 +756,49 @@ class PatientModel(QObject):
                 cursor.close()
                 conn.close()
 
+    # Position of each status field inside a patient record, in the column order
+    # the patient queries select.
+    STATUS_RECORD_INDEX = {
+        'triage': 2,
+        'admission_consult': 4,
+        'labs': 5,
+        'imaging': 6,
+        'specialist_consult': 7,
+        'reassessment': 8,
+        'disposition': 10,
+    }
+
+    def record_status_timestamps(self, patient_id, data, previous_record=None):
+        """
+        Stamps the transition time of every status this save actually moved.
+
+        The reports measure the gaps between these timestamps, so a view that
+        writes the statuses without them leaves its patients out of every metric.
+        Keeping the walk over the fields here means a view cannot forget it, and
+        the clinical views cannot drift apart on which fields count.
+
+        Args:
+            patient_id (int): Patient the statuses belong to
+            data (dict): The values being saved
+            previous_record (tuple, optional): The record as it was before the
+                edit. Omit it when creating a patient, where every status set is
+                new. When given, only the fields that actually changed are
+                stamped, including those cleared back to an empty value, which
+                is what removes a timestamp that no longer applies.
+        """
+        for field, index in self.STATUS_RECORD_INDEX.items():
+            value = data.get(field, '') or ''
+
+            if previous_record is None:
+                # Creating: nothing to compare against, and an unset status has
+                # no transition to record.
+                if not value:
+                    continue
+            elif value == (previous_record[index] or ''):
+                continue
+
+            self.update_status_with_timestamp(patient_id, field, value)
+
     def validate_name(self, name):
         """
         Validates that the name complies with the established rules:
