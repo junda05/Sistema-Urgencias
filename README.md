@@ -51,6 +51,15 @@ Creates the `urgentix` database with all tables empty:
 Get-Content database\schema.sql | & $mysql -u root -p
 ```
 
+> ⚠️ This script begins with `DROP DATABASE IF EXISTS urgentix`. That makes it safe to
+> re-run while you are setting things up, but it destroys everything in that database —
+> patients, users and loaded catalogs alike. Run it once, at the start. If you later want
+> a clean slate, re-running it is the way to get one, and you will need to repeat steps
+> 1.3 to 1.5 afterwards.
+
+Run it as `root`. The script creates the database and a view, and the account that creates
+that view owns it, so a later account with rights only on `urgentix` cannot replace it.
+
 > PowerShell does not support the `<` redirection used on Linux shells, which is why
 > this uses `Get-Content` and a pipe.
 
@@ -421,5 +430,6 @@ selected date range, or the test data was not loaded. Widen the date filter, or 
 `pip install PyQtWebEngine` (source route only; the executable bundles it).
 
 **A patient will not save** — name, document number, area and cubicle are mandatory, and
-the name must have at least three words. The system also refuses a second active record
-for a document number that is already admitted.
+the name must have at least three words. The system also refuses a document number that is
+already on the board under a *different* name. If the name matches, it asks whether you
+meant to open a second record for the same patient.

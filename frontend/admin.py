@@ -306,6 +306,16 @@ class AdminView(QMainWindow):
                 # Update the roles in the users table to keep consistency
                 UsersModel.update_roles_in_table(username, privilege)
 
+                # Log it in the audit trail. Creating an account is the moment
+                # someone gains access, so it belongs in the log alongside the
+                # role changes and deactivations that follow it.
+                from backend.database import AuditTrailModel
+                details = f"User created: {username} | Full name: {full_name} | Role: {role}"
+                AuditTrailModel.log_action(
+                    action="Create user",
+                    change_details=details
+                )
+
                 # Refresh the users table if it is open - FIX HERE
                 if hasattr(self, 'users_table') and self.users_table:
                     try:

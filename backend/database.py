@@ -1274,6 +1274,11 @@ class PatientModel(QObject):
                 cursor.execute("UPDATE patients SET labs = '' WHERE id = %s", (patient_id,))
             conn.commit()
             conn.close()
+            AuditTrailModel.log_action(
+                action="Update labs",
+                affected_patient=patient_name,
+                change_details="Laboratory orders cleared and the stage status reset"
+            )
             print("No labs were associated (existing associations were deleted)")
             return True, "No labs were associated"
 
@@ -1310,6 +1315,15 @@ class PatientModel(QObject):
         labs_current_status = result[0] if result else ""
 
         conn.close()
+
+        # Ordering an exam is a clinical decision, so the log names the exams
+        # themselves rather than only recording that the list changed.
+        AuditTrailModel.log_action(
+            action="Update labs",
+            affected_patient=patient_name,
+            change_details=f"LABS: {labs_current_status or 'no status'} | "
+                           f"{len(lab_details)} ordered: {', '.join(lab_details)}"
+        )
 
         # Update the pending tasks automatically according to the Labs status
         print(f"Updating pending tasks for Labs with status: {labs_current_status}")
@@ -1586,6 +1600,11 @@ class PatientModel(QObject):
                 cursor.execute("UPDATE patients SET imaging = '' WHERE id = %s", (patient_id,))
             conn.commit()
             conn.close()
+            AuditTrailModel.log_action(
+                action="Update imaging",
+                affected_patient=patient_name,
+                change_details="Imaging orders cleared and the stage status reset"
+            )
             print("No imaging exams were associated (existing associations were deleted)")
             return True, "No imaging exams were associated"
 
@@ -1622,6 +1641,13 @@ class PatientModel(QObject):
         imaging_current_status = result[0] if result else ""
 
         conn.close()
+
+        AuditTrailModel.log_action(
+            action="Update imaging",
+            affected_patient=patient_name,
+            change_details=f"IMAGING: {imaging_current_status or 'no status'} | "
+                           f"{len(imaging_details)} ordered: {', '.join(imaging_details)}"
+        )
 
         # Update the pending tasks automatically according to the Imaging status
         print(f"Updating pending tasks for Imaging with status: {imaging_current_status}")
@@ -1939,51 +1965,6 @@ class PatientModel(QObject):
             print(f"Error getting the user name: {str(e)}")
             return username
 
-    def update_basic_information(self, data, location, original_record):
-        """
-        Updates the basic patient information without updating statuses (which are handled with timestamps)
-
-        Args:
-            data (dict): Dictionary of basic patient data
-            location (str): Patient location
-            original_record (tuple): Original patient data
-
-        Returns:
-            tuple: (success, message)
-        """
-        try:
-            patient_id = original_record[13]  # ID at position 13
-
-            conn = self.connect()
-            cursor = conn.cursor()
-
-            # Updates only name, document id, pending tasks and location
-            query = """
-                UPDATE patients
-                SET name = %s, document_id = %s, pending_tasks = %s, location = %s
-                WHERE id = %s
-            """
-
-            params = (
-                data['name'],
-                data['document_id'],
-                data['pending_tasks'],
-                location,
-                patient_id
-            )
-
-            cursor.execute(query, params)
-            conn.commit()
-
-            return True, "Basic information updated successfully"
-
-        except Exception as e:
-            print(f"Error updating the basic information: {str(e)}")
-            return False, f"Error updating the basic information: {str(e)}"
-        finally:
-            if conn and hasattr(conn, 'close'):
-                cursor.close()
-                conn.close()
 
 class AuditTrailModel:
     """Model for managing the audit trail of actions in the system"""
