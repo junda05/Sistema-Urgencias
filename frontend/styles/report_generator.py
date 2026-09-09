@@ -686,7 +686,7 @@ class ReportGenerator(QDialog):
                     <h3 class="text-lg font-medium mb-2">Triage</h3>
                     <div class="gauge-container w-24 h-24 mx-auto">
                         <canvas id="gaugeTriage"></canvas>
-                        <div class="gauge-value">{{COMPLIANCE_TRIAGE}}%</div>
+                        <div class="gauge-value">{{COMPLIANCE_TRIAGE}}</div>
                     </div>
                 </div>
                 <!-- Admission Consult -->
@@ -694,7 +694,7 @@ class ReportGenerator(QDialog):
                     <h3 class="text-lg font-medium mb-2">Admission</h3>
                     <div class="gauge-container w-24 h-24 mx-auto">
                         <canvas id="gaugeAdmission"></canvas>
-                        <div class="gauge-value">{{COMPLIANCE_ADMISSION}}%</div>
+                        <div class="gauge-value">{{COMPLIANCE_ADMISSION}}</div>
                     </div>
                 </div>
                 <!-- Laboratories -->
@@ -702,7 +702,7 @@ class ReportGenerator(QDialog):
                     <h3 class="text-lg font-medium mb-2">Labs</h3>
                     <div class="gauge-container w-24 h-24 mx-auto">
                         <canvas id="gaugeLab"></canvas>
-                        <div class="gauge-value">{{COMPLIANCE_LABS}}%</div>
+                        <div class="gauge-value">{{COMPLIANCE_LABS}}</div>
                     </div>
                 </div>
                 <!-- Imaging -->
@@ -710,7 +710,7 @@ class ReportGenerator(QDialog):
                     <h3 class="text-lg font-medium mb-2">Imaging</h3>
                     <div class="gauge-container w-24 h-24 mx-auto">
                         <canvas id="gaugeImaging"></canvas>
-                        <div class="gauge-value">{{COMPLIANCE_IMAGING}}%</div>
+                        <div class="gauge-value">{{COMPLIANCE_IMAGING}}</div>
                     </div>
                 </div>
                 <!-- Specialist Consult -->
@@ -718,7 +718,7 @@ class ReportGenerator(QDialog):
                     <h3 class="text-lg font-medium mb-2">Specialist</h3>
                     <div class="gauge-container w-24 h-24 mx-auto">
                         <canvas id="gaugeSpecialist"></canvas>
-                        <div class="gauge-value">{{COMPLIANCE_SPECIALIST}}%</div>
+                        <div class="gauge-value">{{COMPLIANCE_SPECIALIST}}</div>
                     </div>
                 </div>
                 <!-- Reassessment -->
@@ -726,7 +726,7 @@ class ReportGenerator(QDialog):
                     <h3 class="text-lg font-medium mb-2">Reassessment</h3>
                     <div class="gauge-container w-24 h-24 mx-auto">
                         <canvas id="gaugeReassessment"></canvas>
-                        <div class="gauge-value">{{COMPLIANCE_REASSESSMENT}}%</div>
+                        <div class="gauge-value">{{COMPLIANCE_REASSESSMENT}}</div>
                     </div>
                 </div>
             </div>
@@ -2360,10 +2360,14 @@ class ReportGenerator(QDialog):
         The group report carries them ready made; the individual report derives
         them from that patient's own times. Both paths end here so the gauges and
         their captions are filled the same way whichever report is being shown.
+
+        A stage with nothing to measure in the selected range stays None rather
+        than becoming 0: no qualifying patients is not the same as no patient
+        complying, and 0 would paint the stage red as though it had failed.
         """
         stages = ["triage", "admission_consult", "labs", "imaging",
                   "specialist_consult", "reassessment"]
-        values = {stage: 0 for stage in stages}
+        values = {stage: None for stage in stages}
 
         source = data.get("sla")
         if not source and data.get("individual", False):
@@ -2375,10 +2379,13 @@ class ReportGenerator(QDialog):
 
         if isinstance(source, dict):
             for stage in stages:
+                raw = source.get(stage)
+                if raw is None:
+                    continue
                 try:
-                    values[stage] = int(round(float(source.get(stage, 0) or 0)))
+                    values[stage] = int(round(float(raw)))
                 except (TypeError, ValueError):
-                    values[stage] = 0
+                    values[stage] = None
         return values
 
     def replace_data_in_html(self, html_content, data):
@@ -2433,8 +2440,13 @@ class ReportGenerator(QDialog):
                     ("specialist_consult", "COMPLIANCE_SPECIALIST", "GAUGE_SPECIALIST"),
                     ("reassessment", "COMPLIANCE_REASSESSMENT", "GAUGE_REASSESSMENT")):
                 value = compliance[stage]
-                html_content = html_content.replace("{{" + text_marker + "}}", str(value))
-                html_content = html_content.replace("{{" + gauge_marker + "}}", str(value))
+                # The caption is prose and says so when there is nothing to report;
+                # the gauge argument is JavaScript and must stay a number, so an
+                # unmeasured stage simply draws an empty arc behind the "--".
+                caption = "--" if value is None else f"{value}%"
+                html_content = html_content.replace("{{" + text_marker + "}}", caption)
+                html_content = html_content.replace("{{" + gauge_marker + "}}",
+                                                    str(0 if value is None else value))
 
             if data.get("individual", False):
                 patient = data["patient"]

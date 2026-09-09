@@ -1103,7 +1103,8 @@ class MetricsModel:
                 compliant_triage = sum(1 for t, time in triage_data if time <= slas['triage'].get(t, 30))
                 results['triage'] = round((compliant_triage / total_triage) * 100)
             else:
-                results['triage'] = 0
+                # No qualifying patients in range: absence of data is not a breach.
+                results['triage'] = None
 
             # Admission Consult
             conditions = base_conditions.copy() + ["admission_consult = 'Completed' AND admission_consult_not_done_timestamp IS NOT NULL AND admission_consult_done_timestamp IS NOT NULL"]
@@ -1126,7 +1127,8 @@ class MetricsModel:
                 compliant_admission_consult = sum(1 for t, time in admission_consult_data if time <= slas['admission_consult'].get(t, 60))
                 results['admission_consult'] = round((compliant_admission_consult / total_admission_consult) * 100)
             else:
-                results['admission_consult'] = 0
+                # No qualifying patients in range: absence of data is not a breach.
+                results['admission_consult'] = None
 
             # Labs
             conditions = base_conditions.copy() + ["labs = 'Results complete' AND labs_requested_timestamp IS NOT NULL AND labs_complete_timestamp IS NOT NULL"]
@@ -1149,7 +1151,8 @@ class MetricsModel:
                 compliant_labs = sum(1 for t, time in labs_data if time <= slas['labs'].get(t, 90))
                 results['labs'] = round((compliant_labs / total_labs) * 100)
             else:
-                results['labs'] = 0
+                # No qualifying patients in range: absence of data is not a breach.
+                results['labs'] = None
 
             # Imaging
             conditions = base_conditions.copy() + ["imaging = 'Results complete' AND imaging_requested_timestamp IS NOT NULL AND imaging_complete_timestamp IS NOT NULL"]
@@ -1172,7 +1175,8 @@ class MetricsModel:
                 compliant_imaging = sum(1 for t, time in imaging_data if time <= slas['imaging'].get(t, 90))
                 results['imaging'] = round((compliant_imaging / total_imaging) * 100)
             else:
-                results['imaging'] = 0
+                # No qualifying patients in range: absence of data is not a breach.
+                results['imaging'] = None
 
             # Specialist Consult
             conditions = base_conditions.copy() + ["specialist_consult = 'Completed' AND specialist_consult_opened_timestamp IS NOT NULL AND specialist_consult_done_timestamp IS NOT NULL"]
@@ -1195,7 +1199,8 @@ class MetricsModel:
                 compliant_specialist_consult = sum(1 for t, time in specialist_consult_data if time <= slas['specialist_consult'].get(t, 60))
                 results['specialist_consult'] = round((compliant_specialist_consult / total_specialist_consult) * 100)
             else:
-                results['specialist_consult'] = 0
+                # No qualifying patients in range: absence of data is not a breach.
+                results['specialist_consult'] = None
 
             # Reassessment
             conditions = base_conditions.copy() + ["reassessment = 'Completed' AND reassessment_not_done_timestamp IS NOT NULL AND reassessment_done_timestamp IS NOT NULL"]
@@ -1218,20 +1223,23 @@ class MetricsModel:
                 compliant_reassessment = sum(1 for t, time in reassessment_data if time <= slas['reassessment'].get(t, 120))
                 results['reassessment'] = round((compliant_reassessment / total_reassessment) * 100)
             else:
-                results['reassessment'] = 0
+                # No qualifying patients in range: absence of data is not a breach.
+                results['reassessment'] = None
 
             conn.close()
             return results
 
         except Exception as e:
             print(f"Error computing the SLA compliance metrics: {str(e)}")
+            # Nothing could be measured, which is not the same as nothing complying.
+            # Zero here would paint every stage red and read as a department in crisis.
             return {
-                'triage': 0,
-                'admission_consult': 0,
-                'labs': 0,
-                'imaging': 0,
-                'specialist_consult': 0,
-                'reassessment': 0
+                'triage': None,
+                'admission_consult': None,
+                'labs': None,
+                'imaging': None,
+                'specialist_consult': None,
+                'reassessment': None
             }
 
     @classmethod
