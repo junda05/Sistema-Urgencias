@@ -14,6 +14,8 @@ something to show.
 Seeded records are recognisable by their document numbers, which all start with
 the prefix below, so the cleanup never touches anything else.
 """
+import contextlib
+import io
 import os
 import random
 import sys
@@ -25,7 +27,6 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 import pymysql  # noqa: E402
 
 PREFIX = "SEED"
-HOST = "localhost"
 USER = "emergency_admin"
 DATABASE = "urgentix"
 
@@ -51,8 +52,8 @@ AREAS = {
 PATHS = (["discharged"] * 11) + (["observation"] * 3) + (["hospitalized"] * 3) + (["in_care"] * 3)
 
 
-def connect(password):
-    return pymysql.connect(host=HOST, user=USER, password=password,
+def connect(host, password):
+    return pymysql.connect(host=host, user=USER, password=password,
                            database=DATABASE, charset="utf8mb4")
 
 
@@ -191,14 +192,24 @@ def insert(connection, rows):
 
 
 def store_metrics(ids):
+    """Computes the turnaround metrics the reports read from.
+
+    The model prints a line per patient, which buries the summary under
+    hundreds of rows, so its output is swallowed and only failures surface.
+    """
     from backend.database import AuditTrailModel
     stored = 0
+    failures = []
+    quiet = io.StringIO()
     for pid in ids:
         try:
-            AuditTrailModel.calculate_and_store_metrics(pid)
+            with contextlib.redirect_stdout(quiet):
+                AuditTrailModel.calculate_and_store_metrics(pid)
             stored += 1
         except Exception as error:
-            print(f"  metrics failed for {pid}: {error}")
+            failures.append(f"  metrics failed for {pid}: {error}")
+    for failure in failures:
+        print(failure)
     return stored
 
 
@@ -216,14 +227,17 @@ def main():
         import getpass
         password = getpass.getpass(f"Password for MySQL user {USER}: ")
 
+    # Use the server the application is configured against, not a hardcoded one,
+    # so this works unchanged when config.ini points somewhere other than localhost.
     from backend.database import AuthenticationModel, ConfigurationModel
-    AuthenticationModel.set_server(ConfigurationModel.load_configuration())
+    host = ConfigurationModel.load_configuration()
+    AuthenticationModel.set_server(host)
     ok, message = AuthenticationModel.validate_credentials(USER, password)
     if not ok:
         print("Could not authenticate:", message)
         return 1
 
-    connection = connect(password)
+    connection = connect(host, password)
     try:
         if "--clear" in sys.argv:
             print(f"removed {clear(connection)} seeded patients")

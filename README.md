@@ -173,11 +173,98 @@ The board starts empty, which is expected: no patient data ships with the system
    masked names and document numbers.
 
 Reports need discharged patients to have something to measure, so add a patient,
-move them through the stages and set the disposition to `Discharged`.
+move them through the stages and set the disposition to `Discharged`. To fill the
+board and the reports in one step instead, see the next section.
 
 ---
 
-## 9. Roles
+## 9. Loading test data
+
+The board starts empty, and reports need finished episodes before they show anything.
+`tools/seed_test_data.py` fills the database with synthetic patients so every screen has
+something to display.
+
+```powershell
+python tools\seed_test_data.py 60
+```
+
+It asks for the `emergency_admin` password (`Urgentix2026!`) and connects to whatever
+server `config.ini` points at, exactly as the application does. That inserts 60 patients
+and computes their metrics. Everything about them is invented — names, document numbers
+and timings are random — so no real data ever enters the database. They are spread over
+the past 45 days and cover every care path, and the script reports the mix it produced:
+
+```
+inserted 60 synthetic patients
+stored metrics for 60 of them
+
+by disposition:
+  Hospitalized       7
+  (still in care)    11
+  Observation        13
+  Discharged         29
+by triage level:
+  level 1              9
+  level 2              24
+  level 3              27
+```
+
+The exact counts differ on every run. What matters is that each group feeds a different
+part of the system: discharged patients give the reports their turnaround times, patients
+under observation trigger the 12-hour alarm, and those still in care populate the board.
+Triage times are drawn so that most patients meet the target for their level and some miss
+it badly, which is what makes the compliance gauges show something other than 100%.
+
+To remove them again:
+
+```powershell
+python tools\seed_test_data.py --clear
+```
+
+Every seeded record carries a document number starting with `SEED`, and `--clear` only
+deletes those, so it will never touch data you entered yourself. Running the script
+without `--clear` does the same cleanup first, so repeated runs replace the previous
+batch rather than piling up on it.
+
+### Test users for the other two views
+
+The seeded data covers patients, not accounts. To see the doctor and waiting-room views
+you need a user in each role. The simplest route is the application itself: log in as the
+administrator and use **Menu → Create user**, which creates the database account and its
+role in one step.
+
+To create them directly instead:
+
+```powershell
+$mysql = 'C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe'
+& $mysql -u emergency_admin -p -e @"
+CREATE USER IF NOT EXISTS 'test_doctor'@'%' IDENTIFIED BY 'TestDoctor2026!';
+GRANT SELECT, INSERT, UPDATE, DELETE ON urgentix.* TO 'test_doctor'@'%';
+CREATE USER IF NOT EXISTS 'test_visitor'@'%' IDENTIFIED BY 'TestVisitor2026!';
+GRANT SELECT ON urgentix.* TO 'test_visitor'@'%';
+
+INSERT INTO urgentix.users (username, full_name, role_doctor)
+VALUES ('test_doctor', 'Test Doctor', TRUE);
+INSERT INTO urgentix.users (username, full_name, role_visitor)
+VALUES ('test_visitor', 'Test Visitor', TRUE);
+"@
+```
+
+This runs as `emergency_admin`, not root: step 4 granted it `CREATE USER ... WITH GRANT
+OPTION` for exactly this. Note there is no `FLUSH PRIVILEGES` here — `CREATE USER` and
+`GRANT` apply immediately, and flushing needs the `RELOAD` privilege, which this account
+deliberately does not have.
+
+| User | Password | Sees |
+|---|---|---|
+| `emergency_admin` | `Urgentix2026!` | Everything: patients, users, reports, audit trail |
+| `test_doctor` | `TestDoctor2026!` | Patients and area filtering; no user management, no reports |
+| `test_visitor` | `TestVisitor2026!` | Waiting-room display: masked names, no disposition, auto-paging |
+
+The role comes from the row in `users`, and what the account may actually do comes from
+its database privileges, so both halves matter. Log out and back in to switch views.
+
+## 10. Roles
 
 | Role | Can do |
 |---|---|
@@ -190,7 +277,7 @@ MySQL account.
 
 ---
 
-## 10. Packaged executable
+## 11. Packaged executable
 
 `executable/Urgentix.exe` runs without Python installed. Keep `config.ini` beside
 it and make sure the `inputs` folder is reachable, then run the executable and
@@ -207,13 +294,16 @@ explicitly collects the QtWebEngine components the report view needs.
 
 ---
 
-## 11. Project layout
+## 12. Project layout
 
 ```
 main.py                     Application entry point
 config.ini                  Server address and bootstrap account
 requirements.txt            Python dependencies
 build_exe.py                PyInstaller build script
+
+tools/
+  seed_test_data.py         Synthetic patients for testing (see section 9)
 
 backend/
   database.py               Configuration, authentication, patients, audit trail
@@ -238,7 +328,7 @@ executable/
 
 ---
 
-## 12. Troubleshooting
+## 13. Troubleshooting
 
 **"Error trying to connect: Access denied"** — the username or password is not a
 valid MySQL account, or it has no privileges on `urgentix`. Re-run step 4.
