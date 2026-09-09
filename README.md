@@ -108,7 +108,7 @@ application. Creating a user reads `mysql.user` to check the name is free and th
 the same privileges the application grants to any administrator it creates, so the
 bootstrap account simply matches them.
 
-**Default credentials for evaluation:**
+**Default credentials:**
 
 | Field | Value |
 |---|---|
@@ -116,8 +116,8 @@ bootstrap account simply matches them.
 | Password | `Urgentix2026!` |
 | Role | Administrator |
 
-> ⚠️ These are documented defaults for a local evaluation instance. Change the password,
-> in MySQL and in `config.ini`, before any real deployment.
+> ⚠️ These are documented defaults for a local test instance. Change the password, in
+> MySQL and in `config.ini`, before any real deployment.
 
 ## 1.4 Load the test data
 
@@ -307,7 +307,7 @@ Log in with `emergency_admin` / `Urgentix2026!`.
 
 ## 3.5 Regenerating the test data (optional)
 
-Part 1.4 already loaded test data, and that is enough to evaluate the system. If you want
+Part 1.4 already loaded test data, and that is enough to exercise the system. If you want
 a different volume or a fresh random mix, the generator that produced that SQL file is
 included and needs Python:
 
@@ -393,7 +393,7 @@ frontend/
 
 database/
   schema.sql                Database schema, tables empty
-  seed_test_data.sql        Synthetic patients for evaluation (Part 1.4)
+  seed_test_data.sql        Synthetic patients for testing (Part 1.4)
 
 tools/
   seed_test_data.py         Generates synthetic patients (Part 3.5)

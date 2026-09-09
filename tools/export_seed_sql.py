@@ -1,9 +1,9 @@
 """
 Export the seeded patients as a portable SQL script.
 
-`seed_test_data.py` needs Python and the application package. Someone evaluating
-the packaged executable has neither, so this turns whatever that script produced
-into plain SQL that the MySQL client can load on its own.
+`seed_test_data.py` needs Python and the application package. Anyone running the
+packaged executable has neither, so this turns whatever that script produced into
+plain SQL that the MySQL client can load on its own.
 
 Absolute datetimes would rot: a patient admitted at a fixed date stops being
 "recent", the alarms stop firing and the reports drift out of their default date
@@ -123,8 +123,8 @@ def main():
         "-- Urgentix — synthetic test data",
         "--",
         "-- Loads invented patients so the board, the alarms and the reports can be",
-        "-- evaluated against a system that ships with an empty database. Names,",
-        "-- document numbers and timings are randomly generated; nothing here is real.",
+        "-- exercised on a system that ships with an empty database. Names, document",
+        "-- numbers and timings are randomly generated; nothing here is real.",
         "--",
         "-- Every timestamp is relative to the moment this script runs, so the data is",
         "-- always recent no matter when it is loaded.",

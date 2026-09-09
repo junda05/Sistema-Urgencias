@@ -774,11 +774,15 @@ class ReportGenerator(QDialog):
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
+                        <!-- Placeholder row, replaced with the selected patient in
+                             individual mode. The document number deliberately uses the
+                             synthetic prefix rather than anything shaped like a real
+                             identity document, since this markup ships with the app. -->
                         <tr class="expandable-row table-row-odd">
-                            <td class="px-4 py-3 whitespace-nowrap">John Michael Smith Jones</td>
-                            <td class="px-4 py-3 whitespace-nowrap">1114565784</td>
+                            <td class="px-4 py-3 whitespace-nowrap">Example Patient Name</td>
+                            <td class="px-4 py-3 whitespace-nowrap">SEED00000</td>
                             <td class="px-4 py-3 whitespace-nowrap">Yellow</td>
-                            <td class="px-4 py-3 whitespace-nowrap">2025-05-02 09:39:27</td>
+                            <td class="px-4 py-3 whitespace-nowrap">--</td>
                             <td class="px-4 py-3 whitespace-nowrap">56 min</td>
                             <td class="px-4 py-3 whitespace-nowrap">
                                 <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Discharged</span>

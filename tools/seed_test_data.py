@@ -223,9 +223,9 @@ def attach_exams(connection, ids):
     the pending-tasks column.
 
     Without this the board's pending column and its tooltip are empty for every
-    seeded patient, which is the one place a reviewer is told to look first. The
-    exams go in through the application's own model so the derived pending tasks
-    match exactly what the software would have produced.
+    seeded patient, and that column is the first thing anyone reads on the board.
+    The exams go in through the application's own model so the derived pending
+    tasks match exactly what the software would have produced.
     """
     from backend.database import PatientModel
 
