@@ -1705,8 +1705,11 @@ class ReportGenerator(QDialog):
 
     def calculate_individual_sla_compliance(self, patient_metrics):
         """Calculates the SLA compliance percentage for an individual patient"""
-        # Get the triage level of the patient (default value: 3)
-        triage_level = patient_metrics.get("triage", {}).get("value", "3")
+        # Get the triage level of the patient (default value: 3).
+        # The key is "level": reading anything else silently falls back to the
+        # default and judges every patient against the triage 3 targets, which
+        # is most forgiving exactly where it should be strictest.
+        triage_level = patient_metrics.get("triage", {}).get("level") or "3"
 
         # Define the SLAs according to the triage level (same as in generate_status_indicators_update_js)
         slas = {
