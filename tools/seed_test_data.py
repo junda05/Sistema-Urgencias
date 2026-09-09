@@ -48,8 +48,11 @@ AREAS = {
     "Waiting room": (1, 2),
 }
 
-# how the population splits across care paths
-PATHS = (["discharged"] * 11) + (["observation"] * 3) + (["hospitalized"] * 3) + (["in_care"] * 3)
+# How the population splits across care paths. A quarter are still in care because
+# only those patients can have work outstanding: a discharged patient has nothing
+# pending by definition, so too few of them leaves the board's pending column and
+# its tooltip empty, which is the first thing anyone looks at.
+PATHS = (["discharged"] * 10) + (["observation"] * 3) + (["hospitalized"] * 2) + (["in_care"] * 5)
 
 
 def connect(host, password):
@@ -124,7 +127,9 @@ def build_patient(index):
         requested = cursor_time + timedelta(minutes=random.randint(2, 40))
         row["labs_requested_timestamp"] = requested
         row["labs"] = "Awaiting results"
-        if path != "in_care" or random.random() < 0.6:
+        # Most patients still in care are waiting on the laboratory rather than
+        # already holding their results
+        if path != "in_care" or random.random() < 0.3:
             complete = requested + timedelta(minutes=random.randint(20, 400))
             row["labs_complete_timestamp"] = complete
             row["labs"] = "Results complete"
@@ -138,7 +143,7 @@ def build_patient(index):
         requested = ci_done + timedelta(minutes=random.randint(2, 60))
         row["imaging_requested_timestamp"] = requested
         row["imaging"] = "Awaiting results"
-        if path != "in_care" or random.random() < 0.5:
+        if path != "in_care" or random.random() < 0.25:
             complete = requested + timedelta(minutes=random.randint(25, 420))
             row["imaging_complete_timestamp"] = complete
             row["imaging"] = "Results complete"
@@ -213,6 +218,52 @@ def store_metrics(ids):
     return stored
 
 
+def attach_exams(connection, ids):
+    """Orders exams for the patients whose stage status implies some, and rebuilds
+    the pending-tasks column.
+
+    Without this the board's pending column and its tooltip are empty for every
+    seeded patient, which is the one place a reviewer is told to look first. The
+    exams go in through the application's own model so the derived pending tasks
+    match exactly what the software would have produced.
+    """
+    from backend.database import PatientModel
+
+    model = PatientModel()
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT lab_code FROM lab_catalog")
+        lab_codes = [row[0] for row in cursor.fetchall()]
+        cursor.execute("SELECT imaging_code FROM imaging_catalog")
+        imaging_codes = [row[0] for row in cursor.fetchall()]
+
+    if not lab_codes or not imaging_codes:
+        print("  exam catalogs are empty; run the application once to import them")
+        return 0, 0
+
+    ordered_labs = ordered_imaging = 0
+    quiet = io.StringIO()
+    for patient_id in ids:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT labs, imaging FROM patients WHERE id = %s", (patient_id,))
+            labs_status, imaging_status = cursor.fetchone()
+
+        with contextlib.redirect_stdout(quiet):
+            if labs_status:
+                picked = random.sample(lab_codes, random.randint(1, 4))
+                if model.save_patient_labs(patient_id, picked)[0]:
+                    ordered_labs += 1
+            if imaging_status:
+                picked = random.sample(imaging_codes, random.randint(1, 3))
+                if model.save_patient_imaging(patient_id, picked)[0]:
+                    ordered_imaging += 1
+
+            # Patients with no exams still have derived work outstanding
+            model.update_pending_tasks_column(
+                patient_id, model.calculate_pending_tasks_auto(patient_id))
+
+    return ordered_labs, ordered_imaging
+
+
 def clear(connection):
     with connection.cursor() as cursor:
         cursor.execute("DELETE FROM patients WHERE document_id LIKE %s", (PREFIX + "%",))
@@ -256,6 +307,9 @@ def main():
         ids = insert(connection, rows)
         print(f"inserted {len(ids)} synthetic patients")
         print(f"stored metrics for {store_metrics(ids)} of them")
+
+        labs_done, imaging_done = attach_exams(connection, ids)
+        print(f"ordered labs for {labs_done} and imaging for {imaging_done} of them")
 
         with connection.cursor() as cursor:
             cursor.execute(

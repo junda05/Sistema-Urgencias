@@ -578,48 +578,6 @@ class TraceabilityDialog(QDialog):
             self.progress_value = value
             self.progress_bar.setValue(value)
 
-    def filter_data(self):
-        """Filters the data according to the search criteria"""
-        # Show the spinner and position it above the table
-        self.spinner_container.show()
-        self.spinner_container.raise_()  # Make sure it is above the table
-
-        # Center the spinner inside the parent container
-        spinner_x = (self.content_container.width() - self.spinner_container.width()) // 2
-        spinner_y = (self.content_container.height() - self.spinner_container.height()) // 2
-        self.spinner_container.move(spinner_x, spinner_y)
-
-        # Configure the animated progress bar - make sure it starts at 0
-        self.progress_bar.setRange(0, 100)
-        self.progress_bar.setValue(0)
-        self.progress_value = 0
-
-        # Start the animation timer with a longer interval
-        self.progress_timer.start(70)  # Increased from 50ms to 70ms for a slower animation
-
-        # Get the filtering criteria
-        role_filter_value = self.role_filter.currentText()
-
-        # Create a worker for the filtering
-        self.filter_thread = QThread()
-        self.filter_worker = FilterWorker(self.search_terms, role_filter_value)
-        self.filter_worker.moveToThread(self.filter_thread)
-
-        # Connect signals
-        self.filter_thread.started.connect(self.filter_worker.run)
-        self.filter_worker.progress.connect(self.update_real_progress)
-        self.filter_worker.finished.connect(self.update_table_with_results)
-        self.filter_worker.finished.connect(self.filter_thread.quit)
-        self.filter_worker.finished.connect(self.filter_worker.deleteLater)
-        self.filter_worker.finished.connect(lambda: self.progress_timer.stop())
-        self.filter_thread.finished.connect(self.filter_thread.deleteLater)
-
-        # Keep a reference to the thread to prevent it from being deleted prematurely
-        self.threads.append(self.filter_thread)
-
-        # Start the thread
-        self.filter_thread.start()
-
     def sort_column(self, column_index):
         """Sorts the table by the selected column"""
         # Get the current sort direction

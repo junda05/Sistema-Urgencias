@@ -97,6 +97,20 @@ def main():
                 "FROM patient_metrics m JOIN patients p ON p.id = m.patient_id "
                 "WHERE p.document_id LIKE %s ORDER BY p.id", (PREFIX + "%",))
             metrics = cursor.fetchall()
+
+            # The ordered exams are what fills the board's pending column and its
+            # tooltip, so they have to travel with the patients.
+            cursor.execute(
+                "SELECT p.document_id, l.lab_code FROM patient_labs l "
+                "JOIN patients p ON p.id = l.patient_id "
+                "WHERE p.document_id LIKE %s ORDER BY p.id, l.lab_code", (PREFIX + "%",))
+            labs = cursor.fetchall()
+
+            cursor.execute(
+                "SELECT p.document_id, i.imaging_code FROM patient_imaging i "
+                "JOIN patients p ON p.id = i.patient_id "
+                "WHERE p.document_id LIKE %s ORDER BY p.id, i.imaging_code", (PREFIX + "%",))
+            imaging = cursor.fetchall()
     finally:
         connection.close()
 
@@ -153,6 +167,14 @@ def main():
         lines.append(
             f"SELECT id, {values} FROM patients WHERE document_id = '{document_id}';")
 
+    for table, column, rows in (("patient_labs", "lab_code", labs),
+                                ("patient_imaging", "imaging_code", imaging)):
+        lines += ["", f"-- {len(rows)} {table.replace('patient_', '')} orders"]
+        for document_id, code in rows:
+            lines.append(f"INSERT INTO {table} (patient_id, {column})")
+            lines.append(
+                f"SELECT id, '{code}' FROM patients WHERE document_id = '{document_id}';")
+
     lines += [
         "",
         "SELECT CONCAT('Seeded patients loaded: ', COUNT(*)) AS result",
@@ -164,7 +186,8 @@ def main():
         handle.write("\n".join(lines))
 
     print(f"wrote {OUTPUT}")
-    print(f"  {len(patients)} patients, {len(metrics)} metric rows")
+    print(f"  {len(patients)} patients, {len(metrics)} metric rows, "
+          f"{len(labs)} lab orders, {len(imaging)} imaging orders")
     return 0
 
 

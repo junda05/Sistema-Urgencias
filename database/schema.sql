@@ -134,7 +134,8 @@ CREATE TABLE patient_metrics (
 -- ---------------------------------------------------------------------------
 -- Exam catalogs
 -- Reference data: the lab tests and imaging studies that can be ordered.
--- Populated from exam_catalog.sql.
+-- Left empty here: the application imports these on first login from the
+-- catalog spreadsheets in the inputs folder (see backend/catalog_loader.py).
 -- ---------------------------------------------------------------------------
 CREATE TABLE lab_catalog (
     id INT AUTO_INCREMENT PRIMARY KEY,

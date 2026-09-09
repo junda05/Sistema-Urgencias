@@ -57,8 +57,8 @@ Get-Content database\schema.sql | & $mysql -u root -p
 > a clean slate, re-running it is the way to get one, and you will need to repeat steps
 > 1.3 to 1.5 afterwards.
 
-Run it as `root`. The script creates the database and a view, and the account that creates
-that view owns it, so a later account with rights only on `urgentix` cannot replace it.
+Run it as `root`. The script drops and recreates the whole database, which needs privileges
+above the `urgentix` schema — the application account created in step 1.3 cannot do it.
 
 > PowerShell does not support the `<` redirection used on Linux shells, which is why
 > this uses `Get-Content` and a pipe.
@@ -79,12 +79,20 @@ row in the `users` table, which is what carries the role.
 & $mysql -u root -p -e @"
 CREATE USER IF NOT EXISTS 'emergency_admin'@'%' IDENTIFIED BY 'Urgentix2026!';
 GRANT ALL PRIVILEGES ON urgentix.* TO 'emergency_admin'@'%' WITH GRANT OPTION;
-GRANT CREATE USER ON *.* TO 'emergency_admin'@'%' WITH GRANT OPTION;
+GRANT CREATE USER, RELOAD ON *.* TO 'emergency_admin'@'%' WITH GRANT OPTION;
+GRANT SELECT ON mysql.* TO 'emergency_admin'@'%' WITH GRANT OPTION;
 FLUSH PRIVILEGES;
 INSERT INTO urgentix.users (username, full_name, role_admin)
 VALUES ('emergency_admin', 'System Administrator', TRUE);
 "@
 ```
+
+The grants beyond `urgentix` are what let this account manage other users from inside the
+application. Creating a user reads `mysql.user` to check the name is free and then issues
+`FLUSH PRIVILEGES`, so the account needs `SELECT` on `mysql.*` and `RELOAD`. Without them
+**Menu → Create user** fails with *"SELECT command denied … for table 'user'"*. These are
+the same privileges the application grants to any administrator it creates, so the
+bootstrap account simply matches them.
 
 **Default credentials for evaluation:**
 
@@ -156,9 +164,8 @@ VALUES ('test_visitor', 'Test Visitor', TRUE);
 ```
 
 This runs as `emergency_admin`, not root: step 1.3 granted it `CREATE USER ... WITH GRANT
-OPTION` for exactly this. Note there is no `FLUSH PRIVILEGES` — `CREATE USER` and `GRANT`
-apply immediately, and flushing needs the `RELOAD` privilege, which this account
-deliberately does not have.
+OPTION` for exactly this. No `FLUSH PRIVILEGES` is needed — `CREATE USER` and `GRANT` take
+effect immediately.
 
 | User | Password | Sees |
 |---|---|---|
@@ -327,8 +334,8 @@ python tools\export_seed_sql.py
 6. **Generate a report** — Menu → Generate reports. Group mode gives average, median and
    P90 per stage plus the SLA compliance gauges; individual mode compares one patient
    against their area. Both export to PDF.
-7. **Check the audit trail** — Menu → Traceability lists every action with who did it and
-   what changed.
+7. **Check the audit trail** — Menu → Audit Trail lists every action with who did it and
+   what changed. Menu → Manage users shows the accounts and lets you change a role.
 8. **See the other views** — log out and back in as `test_doctor`, then as `test_visitor`,
    to see area filtering and the masked public display.
 
@@ -359,7 +366,7 @@ backend/
   database.py               Configuration, authentication, patients, audit trail
   metrics_model.py          Turnaround time metrics for reports
   catalog_loader.py         First-run import of the exam catalogs
-  users/                    Users, preferences, waiting-room and auth models
+  users/                    Users, preferences and waiting-room models
 
 frontend/
   login_interface.py        Login and server settings
@@ -388,8 +395,15 @@ To rebuild the executable:
 python build_exe.py
 ```
 
-The result is written to `dist/`. The build bundles the interface assets and explicitly
-collects the QtWebEngine components the report view needs.
+The build writes to `dist/`, so copy the result over the delivered one to replace it,
+leaving `executable/config.ini` where it is:
+
+```powershell
+Copy-Item dist\Urgentix.exe executable\Urgentix.exe -Force
+```
+
+The build bundles the interface assets and explicitly collects the QtWebEngine components
+the report view needs.
 
 ---
 
@@ -413,9 +427,8 @@ to show the error. It is nearly always the database: confirm MySQL is running an
 not found. See 2.1 for the executable or 3.3 for source. To force a reload, empty both
 catalog tables and log in again:
 
-```sql
-DELETE FROM lab_catalog;
-DELETE FROM imaging_catalog;
+```powershell
+& $mysql -u emergency_admin -p -e "USE urgentix; DELETE FROM lab_catalog; DELETE FROM imaging_catalog;"
 ```
 
 **The board is empty** — no patient data ships with the system. Load the test data, step

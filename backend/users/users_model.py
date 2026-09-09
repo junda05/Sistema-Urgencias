@@ -98,41 +98,38 @@ class UsersModel:
                 user_type = "visualization"
                 privileges = UsersModel.PRIVILEGES['read_only']
 
-            # If the user exists, update their privileges
-            if user_exists:
-                if is_admin:
-                    cursor.execute(f"""
-                        GRANT {', '.join(privileges)} ON urgentix.* TO '{username}'@'{host}'
-                        WITH GRANT OPTION
-                    """)
+            if not user_exists:
+                # The password is bound rather than interpolated: the policy demands a
+                # special character, and a quote in it would otherwise break the statement.
+                # The host has to be doubled because the driver formats the query with %,
+                # and the default host is itself a literal '%'.
+                cursor.execute(f"CREATE USER '{username}'@'{host.replace('%', '%%')}' "
+                               f"IDENTIFIED BY %s", (password,))
 
-                    # Add the global permissions for administrators (separate the commands)
-                    cursor.execute(f"""
-                        GRANT {', '.join(UsersModel.ADMIN_GLOBAL_PRIVILEGES)} ON *.* TO '{username}'@'{host}'
-                    """)
+            # The grants are applied whether the account is new or already existed.
+            # Keeping them in one place is what stops an administrator created from
+            # scratch ending up without the global rights that user management needs,
+            # while one promoted later gets them.
+            if is_admin:
+                cursor.execute(f"""
+                    GRANT {', '.join(privileges)} ON urgentix.* TO '{username}'@'{host}'
+                    WITH GRANT OPTION
+                """)
 
-                    # Specific permissions for the mysql database
-                    cursor.execute(f"""
-                        GRANT {', '.join(UsersModel.MYSQL_DB_PRIVILEGES)} ON mysql.* TO '{username}'@'{host}'
-                    """)
-                else:
-                    cursor.execute(f"""
-                        GRANT {', '.join(privileges)} ON urgentix.* TO '{username}'@'{host}'
-                    """)
+                # Global permissions for administrators (separate commands)
+                cursor.execute(f"""
+                    GRANT {', '.join(UsersModel.ADMIN_GLOBAL_PRIVILEGES)} ON *.* TO '{username}'@'{host}'
+                """)
+
+                # Specific permissions for the mysql database
+                cursor.execute(f"""
+                    GRANT {', '.join(UsersModel.MYSQL_DB_PRIVILEGES)} ON mysql.* TO '{username}'@'{host}'
+                """)
             else:
-                # Create the user with a password
-                cursor.execute(f"CREATE USER '{username}'@'{host}' IDENTIFIED BY '{password}'")
-
-                # Grant the privileges
-                if is_admin:
-                    cursor.execute(f"""
-                        GRANT {', '.join(privileges)} ON urgentix.* TO '{username}'@'{host}'
-                        WITH GRANT OPTION
-                    """)
-                else:
-                    cursor.execute(f"""
-                        GRANT {', '.join(privileges)} ON urgentix.* TO '{username}'@'{host}'
-                    """)
+                cursor.execute(f"""
+                    GRANT {', '.join(privileges)} ON urgentix.* TO '{username}'@'{host}'
+                """)
+                if not user_exists:
                     cursor.execute(f"""
                         GRANT SELECT ON mysql.user TO '{username}'@'{host}'
                     """)
@@ -222,8 +219,10 @@ class UsersModel:
                     ON urgentix.* TO '{username}'@'{host}'
                 """)
             else:
-                # Create the user with a password
-                cursor.execute(f"CREATE USER '{username}'@'{host}' IDENTIFIED BY '{password}'")
+                # Create the user with a password, bound rather than interpolated.
+                # The host is doubled because the driver formats the query with %.
+                cursor.execute(f"CREATE USER '{username}'@'{host.replace('%', '%%')}' "
+                               f"IDENTIFIED BY %s", (password,))
 
                 # Grant the CRUD privileges
                 privileges = UsersModel.PRIVILEGES['crud']
@@ -481,8 +480,8 @@ class UsersModel:
                 conn.close()
                 return False, f"The user {username} does not exist"
 
-            # Change the password
-            cursor.execute(f"ALTER USER '{username}'@'%' IDENTIFIED BY '{new_password}'")
+            # Change the password, bound rather than interpolated
+            cursor.execute(f"ALTER USER '{username}'@'%%' IDENTIFIED BY %s", (new_password,))
             cursor.execute("FLUSH PRIVILEGES")
 
             conn.commit()

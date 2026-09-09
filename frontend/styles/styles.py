@@ -382,7 +382,11 @@ DIALOG_STYLE = f"""
         background-color: {COLORS["background_transparent"]};
     }}
     QComboBox::down-arrow {{
-        image: url(dropdown.png);
+        /* No image: a stylesheet url() is resolved relative to the working
+           directory, not to this file, so naming an asset here leaves every
+           combo box in every dialog with no arrow at all. Qt's own arrow is
+           drawn instead, which is what the drop-down width above reserves
+           room for. */
         width: 12px;
         height: 12px;
     }}

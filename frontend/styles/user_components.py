@@ -866,53 +866,14 @@ class UserRegistrationDialog(StyledDialog):
         return username_valid and passwords_match
 
     def register_user(self):
-        """Attempts to register the user"""
+        """Validates the form and closes the dialog so the caller can create the account.
+
+        The dialog deliberately does not create the user itself. The window that
+        opened it creates the account, writes the role row and logs the action, and
+        having both do it meant every registration ran twice.
+        """
         if self.validate_form():
-            # Data for the registration
-            username = self.username_input.text()
-            password = self.password_input_container.text()
-            full_name = self.name_input.text()
-            role = self.role_combo.currentText()  # Get the selected role
-
-            # Try to create the user directly instead of checking first
-            try:
-                from backend.users.users_model import UsersModel
-
-                # Determine the role according to the selection
-                if role == "Administrator":
-                    success, message = UsersModel.create_admin_user(username, password, full_name)
-                elif role == "Doctor":
-                    success, message = UsersModel.create_crud_user(username, password, full_name)
-                else:  # Visitor
-                    success, message = UsersModel.create_user(username, password, full_name)
-
-                if success:
-                    # On success, accept the dialog to finish the registration
-                    self.accept()
-                else:
-                    # Show the error if it failed (for example, if the user already exists)
-                    from frontend.styles.dialog_components import show_warning_message
-                    show_warning_message(
-                        self,
-                        "Registration error",
-                        message
-                    )
-                    # If the error is that the user already exists, show it in the interface
-                    if "already exists" in message.lower():
-                        self.username_feedback.setText("This username already exists")
-                        self.username_feedback.setStyleSheet(f"color: {COLORS['button_danger_hover']}; font-size: 13px;")
-                        self.username_feedback.setVisible(True)
-                    return
-
-            except Exception as e:
-                print(f"Error during the final verification: {str(e)}")
-                from frontend.styles.dialog_components import show_warning_message
-                show_warning_message(
-                    self,
-                    "System error",
-                    f"An unexpected error occurred: {str(e)}"
-                )
-                return
+            self.accept()
         else:
             # Show a general error message if the validation was not completed
             from frontend.styles.dialog_components import show_warning_message

@@ -1097,18 +1097,22 @@ class PatientModel(QObject):
     def get_colors(self):
         """Get the colors for the different statuses, including the triage levels."""
         colors = {
-            "1": "#663300",       # Green for triage 1
-            "2": "#660066",
-            "3": "#3b82f6",
-            "4": "#8b5cf6",       # Green for triage 4
-            "5": "#ec4899",       # Green for triage 5
-            "Not completed": "#CC0000",  # Red for triage not completed
-            "Completed": "#00D000",     # Green for admission consult completed
-            "Not started": "#CC0000",       # Red for labs/imaging not started
-            "Awaiting results": "#FFCC00",  # Yellow for pending results
-            "Results complete": "#00D000",     # Green for complete results
-            "Not opened": "#CC0000",        # Red for specialist consult not opened
-            "Open": "#FFCC00",                 # Yellow for specialist consult open
+            # Triage keeps its own scale, agreed with the department's clinicians,
+            # so a level is read by hue as well as by the digit drawn on the circle.
+            "1": "#663300",                    # Brown, triage 1
+            "2": "#660066",                    # Purple, triage 2
+            "3": "#3b82f6",                    # Light blue, triage 3
+            "4": "#8b5cf6",                    # Violet, triage 4
+            "5": "#ec4899",                    # Pink, triage 5
+            # The remaining stages share one traffic light: red not started,
+            # yellow in progress, green resolved.
+            "Not completed": "#CC0000",        # Red, stage not done
+            "Completed": "#00D000",            # Green, stage done
+            "Not started": "#CC0000",          # Red, labs/imaging not started
+            "Awaiting results": "#FFCC00",     # Yellow, results pending
+            "Results complete": "#00D000",     # Green, every result in
+            "Not opened": "#CC0000",           # Red, specialist consult not opened
+            "Open": "#FFCC00",                 # Yellow, specialist consult open
         }
         return colors
 
